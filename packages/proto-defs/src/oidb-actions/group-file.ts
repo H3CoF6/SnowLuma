@@ -213,14 +213,30 @@ export interface OidbGroupFileCountReq {
   appId?:    pb<2, uint_32>;
   busId?:    pb<3, uint_32>;
 }
+// Count response (0x6D8_2): fileCount is field 4 and maxCount (the group's file
+// ceiling, e.g. 1500) field 6 — RE'd from a live count query (#196). The old
+// pb<1>/pb<2> tags matched nothing, so file_count always decoded to 0.
 export interface OidbGroupFileCountResp {
-  fileCount?: pb<1, uint_32>;
-  maxCount?:  pb<2, uint_32>;
-  isEnd?:     pb<3, bool>;
+  fileCount?: pb<4, uint_32>;
+  maxCount?:  pb<6, uint_32>;
+  isFull?:    pb<7, bool>;
 }
+// Space request/response (0x6D8_3). Both values are 64-bit — the 10 GiB ceiling
+// already exceeds uint32.
+export interface OidbGroupFileSpaceReq {
+  groupUin?: pb<1, uint_32>;
+  appId?:    pb<2, uint_32>;
+}
+export interface OidbGroupFileSpaceResp {
+  totalSpace?: pb<4, uint_64>;
+  usedSpace?:  pb<5, uint_64>;
+}
+// count → subCommand 2, space → subCommand 3 (List is subCommand 1).
 export interface OidbGroupFileCountViewReq {
   count?: pb<3, OidbGroupFileCountReq>;
+  space?: pb<4, OidbGroupFileSpaceReq>;
 }
 export interface OidbGroupFileCountViewResp {
   count?: pb<3, OidbGroupFileCountResp>;
+  space?: pb<4, OidbGroupFileSpaceResp>;
 }
