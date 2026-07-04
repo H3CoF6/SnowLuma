@@ -716,9 +716,17 @@ export class ForwardApi {
       if (!event) continue;
 
       if (event.kind === 'group_message') {
+        // [#201] A merged-forward node leaves `grp.memberName` empty and instead
+        // carries the sender's display name in `grp.groupName` (field 4) — QQ
+        // repurposes the group-name slot per node. parseMsgPush only reads
+        // memberName (correct for live messages), so fall back to groupName here.
+        // This makes the placeholder-source-group member-list enrichment (which
+        // 0x899-AUTHORITY_FAILs) unnecessary for the common case. Verified on
+        // real forwards: fromUin 1787882683 ↔ grp.groupName "墨梓柒".
+        const fwdName = (msgBody.responseHead?.grp?.groupName ?? '').trim();
         out.push({
           userUin: event.senderUin,
-          nickname: event.senderCard || event.senderNick,
+          nickname: event.senderCard || event.senderNick || fwdName,
           elements: event.elements,
           time: event.time,
           msgId: event.msgId,
