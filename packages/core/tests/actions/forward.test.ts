@@ -107,13 +107,12 @@ describe('actions/forward', () => {
   });
 
   it('[#201] fills a group forward node nickname from grp.groupName when memberName is empty', async () => {
-    // Real merged-forward nodes leave grp.memberName null and carry the sender
-    // display name in grp.groupName (field 4). Verified on-target: fromUin
-    // 1787882683 ↔ grp.groupName "墨梓柒", memberName null. Before the fix the
-    // node nickname came back "" and enrichSenders 0x899-AUTHORITY_FAIL'd on the
-    // placeholder source group.
+    // Real merged-forward nodes leave grp.memberName (field 2) null and carry the
+    // sender display name in grp.memberCard (field 4). Verified on-target: fromUin
+    // 1787882683 ↔ grp.memberCard "墨梓柒". Before the fix the node nickname came
+    // back "" and enrichSenders 0x899-AUTHORITY_FAIL'd on the placeholder group.
     const node: PushMsgBody = {
-      responseHead: { fromUin: 1787882683, fromUid: 'u_x', grp: { groupUin: 284840486, groupName: '墨梓柒' } },
+      responseHead: { fromUin: 1787882683, fromUid: 'u_x', grp: { groupUin: 284840486, memberCard: '墨梓柒' } },
       contentHead: { msgType: 82, sequence: 1, timestamp: 100 }, // 82 = PkgType.GroupMessage
       body: { richText: { elems: [{ text: { str: 'hi' } }] } },
     };
