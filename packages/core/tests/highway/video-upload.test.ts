@@ -100,6 +100,23 @@ describe('video-upload', () => {
     expect((uploadInfo[1] as any).fileInfo.type.type).toBe(1); // pic (thumb)
   });
 
+  it('[#145] group video carries real width/height; c2c stays 0/0', async () => {
+    // A real QQ group video's MsgInfo has real dimensions (e.g. 296x640);
+    // sending 0x0 makes QQ-NT receivers render 文件已过期 even though the
+    // resource is fresh (verified on tempserver: 0x0 → expired, real dims →
+    // renders). c2c is left at 0 — the server rejects non-zero dims there.
+    await uploadVideoMsgInfo({} as any, true, 12345, FINGERPRINT);
+    const groupInfo = vi.mocked(pipeline.runNtv2Upload).mock.calls[0]![0].uploadInfo;
+    expect((groupInfo[0] as any).fileInfo.width).toBe(320);  // FINGERPRINT.width
+    expect((groupInfo[0] as any).fileInfo.height).toBe(240); // FINGERPRINT.height
+
+    vi.mocked(pipeline.runNtv2Upload).mockClear();
+    await uploadVideoMsgInfo({} as any, false, 'recipient-uid', FINGERPRINT);
+    const c2cInfo = vi.mocked(pipeline.runNtv2Upload).mock.calls[0]![0].uploadInfo;
+    expect((c2cInfo[0] as any).fileInfo.width).toBe(0);
+    expect((c2cInfo[0] as any).fileInfo.height).toBe(0);
+  });
+
   it('main video carries the real `time` (duration in seconds) — regression: was 0', async () => {
     // NTV2 server bakes the `time` field into the resulting MsgInfo
     // bytes that ride along as `commonElem.pbElem`; the receiver

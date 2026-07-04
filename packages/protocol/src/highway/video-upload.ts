@@ -370,13 +370,16 @@ export async function uploadVideoMsgInfo(
             fileSha1: video.sha1Hex,
             fileName: 'nya.mp4',
             type: { type: 2, picFormat: 0, videoFormat: 0, voiceFormat: 0 },
-            // Width/height kept at 0 — NapCat does the same and the QQ-NT
-            // server has been observed to reject non-zero dimensions
-            // here on c2c sends with a schema-mismatch error. acidify
-            // *does* fill them (`payload.videoWidth/Height`) but we
-            // leave that alone until c2c regression coverage exists.
-            height: 0,
-            width: 0,
+            // [#145] Group video MUST carry real width/height. A real QQ
+            // group video's MsgInfo has them (e.g. 296x640); sending 0x0
+            // makes QQ-NT receivers (Android especially) fail to lay out
+            // the video tile and render 文件已过期 even though the resource
+            // is fresh and downloadable (iOS is lenient — shows expired but
+            // still opens). c2c is left at 0 because the QQ-NT server has
+            // been observed to reject non-zero dimensions there with a
+            // schema-mismatch error (no c2c regression coverage yet).
+            height: isGroup ? video.height : 0,
+            width: isGroup ? video.width : 0,
             // `time` MUST be the real duration in seconds, otherwise
             // every receiving client renders "00:00" on the video.
             // NapCat ships `time: 0` because it sits on top of QQ-NT's
