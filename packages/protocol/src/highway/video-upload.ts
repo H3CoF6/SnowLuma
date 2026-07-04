@@ -33,8 +33,14 @@ export const PRIVATE_VIDEO_THUMB_CMD_ID = 1002;
 export const GROUP_VIDEO_CMD_ID = 1005;
 export const GROUP_VIDEO_THUMB_CMD_ID = 1006;
 
-export const MAX_VIDEO_SIZE = 100 * 1024 * 1024;
-const MAX_VIDEO_SIZE_HARD = 1536 * 1024 * 1024;
+// Videos up to 1.5 GiB send through the Highway video path (matches the
+// file-upload ceiling). Real-machine verified up to ~500 MB rendering and
+// playing fine as a video; the old 100 MB cap existed only to dodge the
+// width/height=0 → 已过期 bug (fixed above), not any real QQ size limit.
+// Above this the OneBot layer re-routes to the file pipeline. NOTE: the
+// whole video is buffered in RAM here (fs.readFileSync), so a 1.5 GiB send
+// costs ~1.5 GiB+ of process memory.
+export const MAX_VIDEO_SIZE = 1536 * 1024 * 1024;
 const SHA1_STREAM_BLOCK_SIZE = 1024 * 1024;
 const SHA1_BLOCK_SIZE = 64;
 
@@ -174,11 +180,8 @@ async function stageVideoSource(element: MessageElement, tempDir: string, cleanu
   const local = resolveLocalFilePath(source);
   if (local && fs.existsSync(local)) {
     const stat = fs.statSync(local);
-    if (stat.size > MAX_VIDEO_SIZE_HARD) {
-      throw new Error(`video file too large: ${(stat.size / (1024 * 1024)).toFixed(2)} MB > ${MAX_VIDEO_SIZE_HARD / (1024 * 1024)} MB`);
-    }
     if (stat.size > MAX_VIDEO_SIZE) {
-      moduleLog.warn('video exceeds 100 MB (%d MB), trying Highway upload', stat.size / (1024 * 1024));
+      throw new Error(`video file too large: ${(stat.size / (1024 * 1024)).toFixed(2)} MB > ${MAX_VIDEO_SIZE / (1024 * 1024)} MB`);
     }
     return {
       bytes: new Uint8Array(fs.readFileSync(local)),
@@ -187,7 +190,7 @@ async function stageVideoSource(element: MessageElement, tempDir: string, cleanu
     };
   }
 
-  const loaded = await loadBinarySource(source, 'video', MAX_VIDEO_SIZE_HARD);
+  const loaded = await loadBinarySource(source, 'video', MAX_VIDEO_SIZE);
   const fileName = element.fileName || loaded.fileName || '';
   const stagedPath = path.join(tempDir, `snowluma-video-in-${crypto.randomUUID()}${sourceExtension(fileName, source)}`);
   fs.writeFileSync(stagedPath, Buffer.from(loaded.bytes));
@@ -274,11 +277,8 @@ async function loadVideo(element: MessageElement): Promise<VideoPayload> {
   try {
     const staged = await stageVideoSource(element, tempDir, cleanups);
     if (staged.bytes.length === 0) throw new Error('video file is empty');
-    if (staged.bytes.length > MAX_VIDEO_SIZE_HARD) {
-      throw new Error(`video file too large: ${(staged.bytes.length / (1024 * 1024)).toFixed(2)} MB > ${MAX_VIDEO_SIZE_HARD / (1024 * 1024)} MB`);
-    }
     if (staged.bytes.length > MAX_VIDEO_SIZE) {
-      moduleLog.warn('video bytes exceed 100 MB (%d MB), Highway upload may fail', staged.bytes.length / (1024 * 1024));
+      throw new Error(`video file too large: ${(staged.bytes.length / (1024 * 1024)).toFixed(2)} MB > ${MAX_VIDEO_SIZE / (1024 * 1024)} MB`);
     }
 
     const hashes = computeHashes(staged.bytes);
