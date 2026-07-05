@@ -224,6 +224,14 @@ async function loadThumb(element: MessageElement, videoPath: string): Promise<{
   height = height || fmt.height || 1;
   duration = duration || 1;
 
+  // The cover sub-file must declare its OWN pixel size, which can be smaller
+  // than the video: the ffmpeg addon downscales large frames (4K/8K → ≤1080p)
+  // so the JPEG cover stays under QQ's 1 MiB cover limit. Fall back to the video
+  // dims when the format can't be read. For 1080p and custom-thumb sends the
+  // cover already equals the video size, so this is a no-op there.
+  const thumbWidth = fmt.width || width;
+  const thumbHeight = fmt.height || height;
+
   const hashes = computeHashes(thumbBytes);
   return {
     width,
@@ -235,8 +243,8 @@ async function loadThumb(element: MessageElement, videoPath: string): Promise<{
       sha1: hashes.sha1,
       md5Hex: hashes.md5Hex,
       sha1Hex: hashes.sha1Hex,
-      width,
-      height,
+      width: thumbWidth,
+      height: thumbHeight,
     },
   };
 }
