@@ -32,6 +32,14 @@ export const decodeGroupMessage: MsgPushDecoder = (ctx) => {
     if (!ev.senderNick) ev.senderNick = member.nickname;
     ev.senderCard = member.card;
     ev.senderRole = member.role;
+    // [#1] field 4 (memberCard) is the sender's CURRENT display name (group card
+    // if set, else base nickname). When it differs from the base nickname it's an
+    // up-to-date group card — fresher than the cache, which nothing refreshes on
+    // a card change (no push; a quiet group can freeze at warmup for months).
+    // Prefer it. (Self-healed back into the cache in packet-pipeline side effects.)
+    if (grp?.memberCard && grp.memberCard !== ev.senderNick) {
+      ev.senderCard = grp.memberCard;
+    }
   } else if (!ev.senderNick && grp?.memberCard) {
     ev.senderNick = grp.memberCard;
   }
