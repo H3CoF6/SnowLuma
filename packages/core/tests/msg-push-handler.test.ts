@@ -14,6 +14,7 @@ import type { GroupMemberInfo, QQGroupInfo } from '@snowluma/protocol/qq-info';
 // inline-extract the kind.
 import type {
   GroupChange, NewFriend, FriendRecall, OperatorInfo, SelfJoinInGroup, GroupAdmin,
+  InputStatusNotify,
 } from '@snowluma/proto-defs/notify';
 import type { PushMsg } from '@snowluma/proto-defs/message';
 import type {
@@ -251,6 +252,53 @@ describe('parseMsgPush Event0x210 subType=179/226 (NewFriend → friend_add)', (
     ) as FriendAddEvent[];
     expect(event.kind).toBe('friend_add');
     expect(event.userUin).toBe(22222); // the packet's fromUin
+  });
+});
+
+describe('parseMsgPush Event0x210 subType=277 (input status → 对方正在输入)', () => {
+  // RE'd from wrapper.linux.node aio_input_state_worker.cc: 0x210/0x115 sys_msg,
+  // body = InputStatusNotify {fromUid, toUid, notifyItem{eventType@f4}}.
+  type FriendInputStatusEvent = Extract<QQEventVariant, { kind: 'friend_input_status' }>;
+
+  function makeInputStatusPacket(fromUid: string, eventType: number): PacketInfo {
+    const content = protobuf_encode<InputStatusNotify>({
+      fromUid,
+      toUid: 'u_self',
+      notifyItem: { eventType },
+    });
+    return makeEvent0x210PacketAny(277, content);
+  }
+
+  it('emits friend_input_status (typing) for eventType 1', () => {
+    const member = makeGroupMember(77777, 'u_typer');
+    const [event] = parseMsgPush(
+      makeInputStatusPacket(member.uid, 1),
+      makeIdentity([member]),
+    ) as FriendInputStatusEvent[];
+
+    expect(event.kind).toBe('friend_input_status');
+    expect(event.userUin).toBe(77777);
+    expect(event.eventType).toBe(1);
+    expect(event.statusText).toBe('对方正在输入...');
+  });
+
+  it('surfaces eventType 3 as the voice-recording status text', () => {
+    const member = makeGroupMember(77777, 'u_typer');
+    const [event] = parseMsgPush(
+      makeInputStatusPacket(member.uid, 3),
+      makeIdentity([member]),
+    ) as FriendInputStatusEvent[];
+
+    expect(event.eventType).toBe(3);
+    expect(event.statusText).toBe('对方正在讲话...');
+  });
+
+  it('drops a body with no fromUid (nothing to key user_id on)', () => {
+    const events = parseMsgPush(
+      makeEvent0x210PacketAny(277, protobuf_encode<InputStatusNotify>({ notifyItem: { eventType: 1 } })),
+      makeIdentity(),
+    );
+    expect(events).toEqual([]);
   });
 });
 

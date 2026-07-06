@@ -262,3 +262,22 @@ export interface GroupReactNotify {
   field13?:           pb<13, uint_32>;
   groupReactionData?: pb<44, GroupReactionData>;
 }
+
+// C2C input-status notify — the "对方正在输入…" push. Delivered as a system
+// message (msgType 0x210 / subMsgType 0x115) whose `MsgBody.msgContent` carries
+// this body. Field layout RE'd from `wrapper.linux.node`
+// `aio_input_state_worker.cc::ProcessInputStateNotifySysMsg` (reads f1=fromUid,
+// f2=toUid, f3=notifyItem; the item's f4 is the event type).
+export interface InputStatusNotifyItem {
+  field2?:     pb<2, uint_32>;
+  field3?:     pb<3, uint_64>;
+  eventType?:  pb<4, uint_32>;   // 1 = 正在输入 (typing), 3 = 正在讲话 (recording voice)
+  field5?:     pb<5, uint_32>;
+  statusText?: pb<6, string>;
+}
+
+export interface InputStatusNotify {
+  fromUid?:    pb<1, string>;
+  toUid?:      pb<2, string>;
+  notifyItem?: pb<3, InputStatusNotifyItem>;
+}

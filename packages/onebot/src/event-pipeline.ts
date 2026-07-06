@@ -70,6 +70,7 @@ const NOTICE_KINDS = [
   'group_essence',
   'group_file_upload',
   'friend_add',
+  'friend_input_status',
   'group_msg_emoji_like',
 ] as const satisfies readonly QQEventVariant['kind'][];
 

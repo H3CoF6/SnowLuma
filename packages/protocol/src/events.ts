@@ -294,6 +294,19 @@ export interface PttTransResultEvent extends QQEvent {
   text: string;
 }
 
+/**
+ * C2C "对方正在输入…" input-status push (Event 0x210 subType 0x115 / 277).
+ * `eventType` 1 = typing, 3 = recording a voice message. Mirrors NapCat's
+ * `onInputStatusPush` → OB11 `notice/notify` `sub_type:'input_status'`.
+ */
+export interface FriendInputStatusEvent extends QQEvent {
+  kind: 'friend_input_status';
+  userUin: number;   // the peer whose input status changed (the typer)
+  userUid: string;
+  eventType: number; // 1 = 正在输入, 3 = 正在讲话(录音)
+  statusText: string;
+}
+
 export type QQEventVariant =
   | FriendMessage
   | GroupMessage
@@ -312,4 +325,5 @@ export type QQEventVariant =
   | GroupFileUploadEvent
   | FriendAddEvent
   | GroupMsgEmojiLikeEvent
-  | PttTransResultEvent;
+  | PttTransResultEvent
+  | FriendInputStatusEvent;
