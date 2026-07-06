@@ -295,6 +295,19 @@ export interface PttTransResultEvent extends QQEvent {
 }
 
 /**
+ * A group member's card (群名片) changed — detected from message traffic when
+ * the sender's live card differs from the cached one (same mechanism as NapCat's
+ * `parseCardChangedEvent`). Maps to OB11 `notice_type:'group_card'`.
+ */
+export interface GroupCardChangeEvent extends QQEvent {
+  kind: 'group_card_change';
+  groupId: number;
+  userUin: number;
+  cardNew: string;
+  cardOld: string;
+}
+
+/**
  * Group name changed (Event 0x2DC subType 16, field13 == 12). Mirrors NapCat's
  * OB11GroupNameEvent → `notice/notify` `sub_type:'group_name'`.
  */
@@ -338,4 +351,5 @@ export type QQEventVariant =
   | GroupMsgEmojiLikeEvent
   | PttTransResultEvent
   | FriendInputStatusEvent
-  | GroupNameChangeEvent;
+  | GroupNameChangeEvent
+  | GroupCardChangeEvent;

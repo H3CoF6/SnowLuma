@@ -11,6 +11,7 @@ import {
   convertFriendPoke,
   convertFriendRecall,
   convertGroupAdmin,
+  convertGroupCardChange,
   convertGroupEssence,
   convertGroupFileUpload,
   convertGroupMemberJoin,
@@ -82,6 +83,7 @@ const CONVERTERS: ConverterRegistry = {
   friend_add: convertFriendAdd,
   friend_input_status: convertFriendInputStatus,
   group_name_change: convertGroupNameChange,
+  group_card_change: convertGroupCardChange,
   group_msg_emoji_like: convertGroupMsgEmojiLike,
   // Requests.
   friend_request: convertFriendRequest,
