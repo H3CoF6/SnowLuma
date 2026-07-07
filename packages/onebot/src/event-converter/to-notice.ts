@@ -22,6 +22,7 @@ type GroupNameChange = Extract<QQEventVariant, { kind: 'group_name_change' }>;
 type GroupCardChange = Extract<QQEventVariant, { kind: 'group_card_change' }>;
 type GroupTitleChange = Extract<QQEventVariant, { kind: 'group_title_change' }>;
 type FriendProfileLike = Extract<QQEventVariant, { kind: 'friend_profile_like' }>;
+type BotOffline = Extract<QQEventVariant, { kind: 'bot_offline' }>;
 
 export function convertGroupMemberJoin(ctx: ConverterContext, event: GroupMemberJoin): JsonObject {
   return notice(ctx, event, {
@@ -170,6 +171,17 @@ export function convertGroupCardChange(ctx: ConverterContext, event: GroupCardCh
     user_id: event.userUin,
     card_new: event.cardNew,
     card_old: event.cardOld,
+  });
+}
+
+export function convertBotOffline(ctx: ConverterContext, event: BotOffline): JsonObject {
+  // Mirrors NapCat's OB11BotOfflineEvent: notice_type bot_offline with the bot's
+  // own uin plus the tag/message describing why it went offline.
+  return notice(ctx, event, {
+    notice_type: 'bot_offline',
+    user_id: event.selfUin,
+    tag: event.tag,
+    message: event.message,
   });
 }
 

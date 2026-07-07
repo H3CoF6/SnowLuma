@@ -263,6 +263,18 @@ export interface GroupReactNotify {
   groupReactionData?: pb<44, GroupReactionData>;
 }
 
+// Forced-offline ("被迫下线") push — SSO cmd
+// `trpc.qq_new_tech.status_svc.StatusService.KickNT`. QQ NT's unified offline
+// notification (kick / login-elsewhere / risk-control-triggered offline all
+// arrive here; the reason is in the strings). Field layout RE'd from
+// wrapper.linux.node (log fmt "tips_title:{} tips_content:{}") + Lagrange's
+// ServiceKickNTResponse: f4 = tips_title (short title), f3 = tips_content (desc).
+export interface KickNTResponse {
+  uin?:   pb<1, uint_32>;
+  tips?:  pb<3, string>;   // tips_content — the longer description
+  title?: pb<4, string>;   // tips_title — the short title
+}
+
 // Group-name change (Event 0x2DC subType 16, NotifyMessageBody.field13 == 12).
 // Rides in `NotifyMessageBody.eventParam` (field 5). Field layout matches
 // Lagrange's `GroupNameChange` (RE'd from wrapper.linux.node): only the new

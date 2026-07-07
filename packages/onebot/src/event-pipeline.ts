@@ -72,6 +72,7 @@ const NOTICE_KINDS = [
   'friend_add',
   'friend_input_status',
   'friend_profile_like',
+  'bot_offline',
   'group_name_change',
   'group_title_change',
   'group_card_change',

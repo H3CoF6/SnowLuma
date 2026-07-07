@@ -295,6 +295,17 @@ export interface PttTransResultEvent extends QQEvent {
 }
 
 /**
+ * The bot account was forced offline (kicked / logged in elsewhere / risk-control)
+ * — SSO push `StatusService.KickNT`. Mirrors NapCat's OB11BotOfflineEvent →
+ * `notice_type:'bot_offline'`. `tag` = short title, `message` = description.
+ */
+export interface BotOfflineEvent extends QQEvent {
+  kind: 'bot_offline';
+  tag: string;
+  message: string;
+}
+
+/**
  * A group member's card (群名片) changed — detected from message traffic when
  * the sender's live card differs from the cached one (same mechanism as NapCat's
  * `parseCardChangedEvent`). Maps to OB11 `notice_type:'group_card'`.
@@ -377,4 +388,5 @@ export type QQEventVariant =
   | GroupNameChangeEvent
   | GroupCardChangeEvent
   | GroupTitleChangeEvent
-  | FriendProfileLikeEvent;
+  | FriendProfileLikeEvent
+  | BotOfflineEvent;

@@ -6,6 +6,7 @@ import {
   convertTempMessage,
 } from './to-message';
 import {
+  convertBotOffline,
   convertFriendAdd,
   convertFriendInputStatus,
   convertFriendProfileLike,
@@ -85,6 +86,7 @@ const CONVERTERS: ConverterRegistry = {
   friend_add: convertFriendAdd,
   friend_input_status: convertFriendInputStatus,
   friend_profile_like: convertFriendProfileLike,
+  bot_offline: convertBotOffline,
   group_name_change: convertGroupNameChange,
   group_title_change: convertGroupTitleChange,
   group_card_change: convertGroupCardChange,

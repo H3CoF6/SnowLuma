@@ -28,6 +28,10 @@
       "types": "./src/packet-pipeline.ts",
       "default": "./src/packet-pipeline.ts"
     },
+    "./kick-nt": {
+      "types": "./src/kick-nt.ts",
+      "default": "./src/kick-nt.ts"
+    },
     "./element-builder": {
       "types": "./src/element-builder.ts",
       "default": "./src/element-builder.ts"
