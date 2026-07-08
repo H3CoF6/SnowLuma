@@ -88,7 +88,7 @@ vi.mock('net', () => ({
   createConnection: createConnectionMock,
 }));
 
-import { uploadHighwayHttp, BufferChunkSource, type HighwaySession } from '@snowluma/protocol/highway';
+import { uploadHighwayHttp, BufferChunkSource, type ChunkSource, type HighwaySession } from '@snowluma/protocol/highway';
 import type { BridgeContext } from '@snowluma/protocol/bridge-context';
 
 const HIGHWAY_BLOCK_SIZE = 1024 * 1024;
@@ -164,5 +164,142 @@ describe('uploadHighwayHttp connection lifecycle', () => {
       makeBridge(), makeSession(), 1003, new BufferChunkSource(new Uint8Array(0)), new Uint8Array(16), new Uint8Array(0),
     );
     expect(createConnectionMock).not.toHaveBeenCalled();
+  });
+});
+
+// 并发上传（#211）的正确性回归。重点覆盖用户要求的四个维度：
+//   数据安全 —— 每个 offset 恰好读一次、大小正确、覆盖整段 [0, size)；
+//   原子性   —— 首个永久失败即中止，不再领新 chunk，整体 reject；
+//   回退     —— 失败/成功都只 close() 一次，且绝不在有 read 在飞时 close；
+//   一致性   —— 并发确实发生（同时在飞的连接 > 1）但不超过 chunk 数。
+describe('uploadHighwayHttp concurrent upload safety (#211)', () => {
+  // 记录每次 read 的 offset/length，跟踪在飞 read 数与 close 时机。read 故意
+  // 异步（await 一个 microtask），这样 close-while-reading 一旦发生就能被捕获。
+  class RecordingChunkSource implements ChunkSource {
+    reads: Array<{ offset: number; length: number }> = [];
+    inFlight = 0;
+    maxInFlight = 0;
+    closeCount = 0;
+    closedWhileReading = false;
+    constructor(readonly size: number) {}
+    async read(offset: number, length: number): Promise<Uint8Array> {
+      this.inFlight += 1;
+      this.maxInFlight = Math.max(this.maxInFlight, this.inFlight);
+      this.reads.push({ offset, length });
+      await Promise.resolve();
+      this.inFlight -= 1;
+      return new Uint8Array(length);
+    }
+    async close(): Promise<void> {
+      if (this.inFlight > 0) this.closedWhileReading = true;
+      this.closeCount += 1;
+    }
+  }
+
+  // errorCode 帧：RespDataHighwayHead.field3 (errorCode) = 921。
+  // 定义即拒绝（不重试），用来制造“瞬时永久失败”而不吃重试 sleep。
+  // varint(921) = 0x99 0x07，tag(field3,varint) = 0x18。
+  function buildErrorCodeFrame(): Buffer {
+    const head = Buffer.from([0x18, 0x99, 0x07]);
+    const frame = Buffer.alloc(9 + head.length + 1);
+    frame[0] = 0x28;
+    frame.writeUInt32BE(head.length, 1);
+    frame.writeUInt32BE(0, 5);
+    head.copy(frame, 9);
+    frame[9 + head.length] = 0x29;
+    return frame;
+  }
+
+  // 跟踪同时存活（已连接、未 destroy）的 socket 峰值，用来断言并发确实发生。
+  let liveSockets = 0;
+  let maxLiveSockets = 0;
+
+  function installMock(responseFrame: Buffer): void {
+    createConnectionMock.mockReset();
+    liveSockets = 0;
+    maxLiveSockets = 0;
+    createConnectionMock.mockImplementation((_opts: unknown, listener?: () => void) => {
+      const sock = new FakeSocket(buildHttpResponse(responseFrame));
+      liveSockets += 1;
+      maxLiveSockets = Math.max(maxLiveSockets, liveSockets);
+      const origDestroy = sock.destroy.bind(sock);
+      sock.destroy = () => { if (!sock.destroyed) liveSockets -= 1; origDestroy(); };
+      createdSockets.push(sock);
+      if (listener) setImmediate(listener);
+      return sock as unknown as ReturnType<typeof createConnectionMock>;
+    });
+  }
+
+  beforeEach(() => { createdSockets.length = 0; });
+  afterEach(() => { vi.restoreAllMocks(); });
+
+  it('covers every offset exactly once and closes the source exactly once (data safety + consistency)', async () => {
+    installMock(buildEmptyHighwayResponseFrame());
+    const chunks = 8;
+    const size = chunks * HIGHWAY_BLOCK_SIZE;
+    const source = new RecordingChunkSource(size);
+
+    await uploadHighwayHttp(
+      makeBridge(), makeSession(), 1004, source, new Uint8Array(16), new Uint8Array(0),
+    );
+
+    // Exactly-once, correctly-sized, gap-free coverage of [0, size).
+    const offsets = source.reads.map((r) => r.offset).sort((a, b) => a - b);
+    expect(offsets).toEqual(Array.from({ length: chunks }, (_, i) => i * HIGHWAY_BLOCK_SIZE));
+    expect(new Set(offsets).size).toBe(chunks); // no duplicate offset
+    expect(source.reads.every((r) => r.length === HIGHWAY_BLOCK_SIZE)).toBe(true);
+    // One connection per chunk; source closed once, never mid-read.
+    expect(createConnectionMock).toHaveBeenCalledTimes(chunks);
+    expect(source.closeCount).toBe(1);
+    expect(source.closedWhileReading).toBe(false);
+  });
+
+  it('actually uploads chunks in parallel but never exceeds the chunk count (concurrency)', async () => {
+    installMock(buildEmptyHighwayResponseFrame());
+    const chunks = 8;
+    const source = new RecordingChunkSource(chunks * HIGHWAY_BLOCK_SIZE);
+
+    await uploadHighwayHttp(
+      makeBridge(), makeSession(), 1004, source, new Uint8Array(16), new Uint8Array(0),
+    );
+
+    // Parallelism happened (more than one connection in flight at once) …
+    expect(maxLiveSockets).toBeGreaterThan(1);
+    // … but the pool is bounded and never opens more than there are chunks.
+    expect(maxLiveSockets).toBeLessThanOrEqual(chunks);
+  });
+
+  it('the last (ragged) chunk carries the remainder length', async () => {
+    installMock(buildEmptyHighwayResponseFrame());
+    const size = 2 * HIGHWAY_BLOCK_SIZE + 12345; // 2 full + 1 partial
+    const source = new RecordingChunkSource(size);
+
+    await uploadHighwayHttp(
+      makeBridge(), makeSession(), 1004, source, new Uint8Array(16), new Uint8Array(0),
+    );
+
+    const byOffset = new Map(source.reads.map((r) => [r.offset, r.length]));
+    expect(byOffset.get(0)).toBe(HIGHWAY_BLOCK_SIZE);
+    expect(byOffset.get(HIGHWAY_BLOCK_SIZE)).toBe(HIGHWAY_BLOCK_SIZE);
+    expect(byOffset.get(2 * HIGHWAY_BLOCK_SIZE)).toBe(12345);
+    const total = source.reads.reduce((n, r) => n + r.length, 0);
+    expect(total).toBe(size); // every byte accounted for exactly once
+  });
+
+  it('aborts the whole upload on a definitive server reject, closing the source once and never mid-read (atomicity + rollback)', async () => {
+    // Every chunk gets error_code=921 → definitive reject, no retries. The first
+    // failure must abort; the source must still be closed exactly once and never
+    // while a read is in flight.
+    installMock(buildErrorCodeFrame());
+    const source = new RecordingChunkSource(8 * HIGHWAY_BLOCK_SIZE);
+
+    await expect(uploadHighwayHttp(
+      makeBridge(), makeSession(), 1004, source, new Uint8Array(16), new Uint8Array(0),
+    )).rejects.toThrow(/error_code=921/);
+
+    expect(source.closeCount).toBe(1);
+    expect(source.closedWhileReading).toBe(false);
+    // Atomicity: once aborted we stop claiming new chunks, so not all 8 were read.
+    expect(source.reads.length).toBeLessThan(8);
   });
 });
