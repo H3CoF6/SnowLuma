@@ -309,7 +309,7 @@ describe('IncomingPacketPipeline / #1 group card self-heal', () => {
   }
 
   const groupMsg = (senderCard: string): QQEventVariant => ({
-    kind: 'group_message', time: 1, selfUin: 10001, groupId: 9999, senderUin: 222,
+    kind: 'group_message', groupName: '', time: 1, selfUin: 10001, groupId: 9999, senderUin: 222,
     senderNick: 'BaseNick', senderCard, senderRole: 'member',
     msgSeq: 1, msgId: 1, elements: [{ type: 'text', text: 'hi' }],
   } as QQEventVariant);
@@ -378,7 +378,7 @@ describe('IncomingPacketPipeline / group_card_change from message traffic', () =
 
   function groupMsg(card: string): QQEventVariant {
     return {
-      kind: 'group_message', time: 1700000000, selfUin: 10001, groupId: GROUP,
+      kind: 'group_message', groupName: '', time: 1700000000, selfUin: 10001, groupId: GROUP,
       senderUin: 22222, senderNick: 'nick', senderCard: card, senderRole: 'member',
       msgSeq: 1, msgId: 1, elements: [],
     } as QQEventVariant;
