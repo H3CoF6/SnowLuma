@@ -546,7 +546,14 @@ export async function sendPrivateMessage(
   userId: number,
   message: JsonValue,
   autoEscape: boolean,
+  /** When set, reply into this group's temp session instead of friend c2c. */
+  tempGroupId?: number,
 ): Promise<MessageSendResult> {
+  // A temp-session reply is only allowed into a session the peer opened.
+  const isTempReply = tempGroupId !== undefined && ref.tempSessions.has(userId, tempGroupId);
+  if (tempGroupId !== undefined && !isTempReply) {
+    throw new Error(`cannot send to user ${userId} in group ${tempGroupId}: no such temp session`);
+  }
   const elements = await parseMessage(message, autoEscape, {
     resolveReplySequence: (replyMessageId) => {
       return ref.messageStore.resolveReplySequence(false, userId, replyMessageId);
@@ -639,12 +646,22 @@ export async function sendPrivateMessage(
     }
   }
 
+  // Route text/media batches through the temp-session primitive when replying
+  // passively, else the normal friend c2c path.
+  const sendText = (elems: MessageElement[]) =>
+    isTempReply && tempGroupId !== undefined
+      ? ref.bridge.apis.message.sendGroupTempMessage(userId, tempGroupId, elems)
+      : ref.bridge.apis.message.sendPrivate(userId, elems);
+
   let lastReceipt: Awaited<ReturnType<typeof ref.bridge.apis.message.sendPrivate>> | undefined;
   if (nonFileElements.length > 0) {
     try {
-      lastReceipt = await ref.bridge.apis.message.sendPrivate(userId, nonFileElements);
+      lastReceipt = await sendText(nonFileElements);
       logSentMessage(false, userId, nonFileElements);
     } catch (err) {
+      // A temp-session reply can't fall back to the c2c file path (friend-only)
+      // — surface the original error rather than mis-routing.
+      if (tempGroupId !== undefined) throw err;
       // Highway upload failed — if a large video triggered it, fall back to
       // file upload for that element (private messages cannot carry file
       // elements through the element pipeline).
@@ -661,6 +678,9 @@ export async function sendPrivateMessage(
     }
   }
   if (allFileElements.length > 0) {
+    if (tempGroupId !== undefined) {
+      throw new Error('temp-session reply does not support file or oversized-video segments');
+    }
     const userUid = await ref.bridge.resolveUserUid(userId);
     if (!userUid) throw new Error(`c2c file send: could not resolve uid for user ${userId}`);
     for (const fileEl of allFileElements) {

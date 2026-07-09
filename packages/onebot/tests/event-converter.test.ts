@@ -109,10 +109,13 @@ describe('convertEvent — message kinds', () => {
     expect(out!.post_type).toBe('message_sent');
   });
 
-  it('temp_message peer → post_type "message", sub_type "group"', async () => {
+  it('temp_message peer → post_type "message", sub_type "group", sender.group_id set', async () => {
     const out = await convertEvent(bareCtx(), makeTempMessage(PEER_UIN));
     expect(out!.post_type).toBe('message');
     expect(out!.sub_type).toBe('group');
+    // Source group is surfaced on sender.group_id so a client can reply via
+    // send_private_msg(user_id, group_id=...).
+    expect((out!.sender as { group_id?: number }).group_id).toBe(99999);
   });
 
   it('temp_message self → post_type "message_sent"', async () => {

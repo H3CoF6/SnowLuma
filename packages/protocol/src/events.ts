@@ -149,6 +149,7 @@ export interface GroupMessage extends QQEvent {
 export interface TempMessage extends QQEvent {
   kind: 'temp_message';
   senderUin: number;
+  /** Source group of the temp session (from responseHead.forward), or 0. */
   groupId: number;
   senderNick: string;
   msgSeq: number;

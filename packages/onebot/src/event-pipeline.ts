@@ -28,6 +28,9 @@ export function registerEventPipeline(ctx: OneBotInstanceContext): () => void {
   disposers.push(
     ctx.bridge.events.on('temp_message', async (event) => {
       cachePrivateMessageMeta(ctx, event.senderUin, event.msgSeq, event.time, 0);
+      // Record this group temp session so a later reply is limited to sessions
+      // the peer opened.
+      ctx.tempSessions.record(event.senderUin, event.groupId);
       await convertAndDispatch(ctx, log, event);
     }),
   );

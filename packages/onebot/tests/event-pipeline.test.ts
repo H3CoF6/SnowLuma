@@ -12,6 +12,7 @@ vi.mock('../src/event-converter', async () => {
 import { convertEvent, type ConverterContext } from '../src/event-converter';
 import { registerEventPipeline } from '../src/event-pipeline';
 import type { OneBotInstanceContext } from '../src/instance-context';
+import { TempSessionStore } from '../src/temp-session-store';
 import type {
   FriendMessage,
   GroupMessage,
@@ -115,6 +116,7 @@ function makeContext(extra: Partial<OneBotInstanceContext> = {}): {
       summarizeMessage: () => [],
       close: () => {},
     } as never,
+    tempSessions: new TempSessionStore(),
     converterCtx,
     config: { networks: { httpServers: [], httpClients: [], wsServers: [], wsClients: [] } } as never,
     cacheMessageMeta: (id, meta) => { metaCalls.push({ id, meta }); },

@@ -6,6 +6,7 @@ import { ApiHandler, type ActionObserver } from './api-handler';
 import type { ConverterContext } from './event-converter';
 import { registerEventPipeline } from './event-pipeline';
 import { buildApiContext, type OneBotInstanceContext } from './instance-context';
+import { TempSessionStore } from './temp-session-store';
 import { RKeyCache } from './instance-rkey';
 import type { GlobalSettings } from './global-config';
 import { MediaIndexer } from './media-indexer';
@@ -116,6 +117,7 @@ export class OneBotInstance {
       messageStore: this.messageStore,
       mediaStore: this.mediaStore,
       reactionStore: this.reactionStore,
+      tempSessions: new TempSessionStore(),
       converterCtx: this.converterCtx,
       config,
       musicSignUrl: globalSettings.musicSignUrl,
