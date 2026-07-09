@@ -410,6 +410,14 @@ export class IdentityService {
     return this.groupInviteCardSeqs_.get(groupUin);
   }
 
+  /** Reverse lookup used for NapCat-compatible numeric request flags. */
+  findGroupInviteCardGroupBySequence(sequence: number): number | undefined {
+    for (const [groupUin, rememberedSequence] of this.groupInviteCardSeqs_) {
+      if (rememberedSequence === sequence) return groupUin;
+    }
+    return undefined;
+  }
+
   rememberGroupRequests(requests: GroupRequestInfo[]): void {
     for (const request of requests) {
       this.rememberUidUin(request.targetUid, request.targetUin);
