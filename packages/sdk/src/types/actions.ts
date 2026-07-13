@@ -83,6 +83,7 @@ import type {
   GroupFileSystemInfo,
   GroupFileUrl,
   GroupMessageHistory,
+  GroupNoticeInfo,
   LoginInfo,
   MediaInfo,
   OnlineClientsInfo,
@@ -163,7 +164,7 @@ export interface SnowLumaActionMap {
   ocr_image: { params: JsonObject; data: JsonValue };
   '.ocr_image': { params: JsonObject; data: JsonValue };
   _send_group_notice: { params: GroupNoticeParams; data: EmptyData };
-  _get_group_notice: { params: GroupIdParams; data: JsonArray };
+  _get_group_notice: { params: GroupIdParams; data: GroupNoticeInfo[] };
   _del_group_notice: { params: JsonObject; data: EmptyData };
   upload_forward_msg: { params: ForwardMessageParams; data: UploadForwardResult };
   upload_foward_msg: { params: ForwardMessageParams; data: UploadForwardResult };
