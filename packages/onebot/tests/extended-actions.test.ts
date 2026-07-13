@@ -121,6 +121,68 @@ function makeHandler(ctx: ApiActionContext): ApiHandler {
   return new ApiHandler(ctx);
 }
 
+describe('extended-actions / group notice options', () => {
+  it('coerces and forwards every supported announcement option', async () => {
+    const sendNotice = vi.fn(async () => ({ ec: 0 }));
+    const bridge = fakeBridge({ apis: { web: { sendNotice } } });
+
+    const response = await makeHandler(fakeCtx(bridge)).handle('_send_group_notice', {
+      group_id: '941657197',
+      content: 'announcement option test',
+      pinned: '1',
+      type: '20',
+      send_to_new_members: 'true',
+      is_show_edit_card: '0',
+      tip_window_type: '0',
+      confirm_required: '0',
+    });
+
+    expect(response).toMatchObject({ status: 'ok', retcode: 0 });
+    expect(sendNotice).toHaveBeenCalledWith(941657197, 'announcement option test', {
+      image: undefined,
+      pinned: 1,
+      type: 20,
+      sendToNewMembers: true,
+      isShowEditCard: 0,
+      tipWindowType: 0,
+      confirmRequired: 0,
+    });
+  });
+
+  it('rejects a semantic/raw target conflict without calling the bridge', async () => {
+    const sendNotice = vi.fn();
+    const bridge = fakeBridge({ apis: { web: { sendNotice } } });
+
+    const response = await makeHandler(fakeCtx(bridge)).handle('_send_group_notice', {
+      group_id: 941657197,
+      content: 'conflict',
+      type: 1,
+      send_to_new_members: true,
+    });
+
+    expect(response).toMatchObject({
+      status: 'failed',
+      retcode: 1400,
+      wording: 'send_to_new_members conflicts with type',
+    });
+    expect(sendNotice).not.toHaveBeenCalled();
+  });
+
+  it('rejects an unverified publish type without calling the bridge', async () => {
+    const sendNotice = vi.fn();
+    const bridge = fakeBridge({ apis: { web: { sendNotice } } });
+
+    const response = await makeHandler(fakeCtx(bridge)).handle('_send_group_notice', {
+      group_id: 941657197,
+      content: 'unsupported',
+      type: 6,
+    });
+
+    expect(response).toMatchObject({ status: 'failed', retcode: 1400 });
+    expect(sendNotice).not.toHaveBeenCalled();
+  });
+});
+
 describe('extended-actions / get_friends_with_category', () => {
   it('returns the exact categorized friend contract', async () => {
     const fetchFriendCategories = vi.fn(async () => [{
