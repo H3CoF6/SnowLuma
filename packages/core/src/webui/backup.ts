@@ -101,11 +101,6 @@ export function buildBackup(
   return { version: BACKUP_VERSION, app: BACKUP_APP, createdAt, files };
 }
 
-/** Validate a parsed bundle wholesale — any defect rejects the whole import. */
-export function validateBackup(parsed: unknown): { ok: true; backup: Backup } | { ok: false; error: string } {
-  return validateBackupEntries(parsed, () => false);
-}
-
 function validateBackupEntries(
   parsed: unknown,
   skipEntryValidation: (spec: BackupFileSpec) => boolean,
@@ -130,25 +125,6 @@ function validateBackupEntries(
     if (typeof e.data !== 'string') return { ok: false, error: `bad data for ${name}` };
   }
   return { ok: true, backup: { version: BACKUP_VERSION, app: BACKUP_APP, createdAt: typeof b.createdAt === 'string' ? b.createdAt : undefined, files: files as Record<string, BackupEntry> } };
-}
-
-/**
- * Decode a validated bundle for the legacy HTTP restore path. The production
- * route switches to restoreBackup once the transaction module is introduced.
- */
-export function planRestore(
-  backup: Backup,
-  opts: { restoreCredentials: boolean },
-): { restore: Array<{ name: string; data: Buffer }>; skipped: string[] } {
-  const restore: Array<{ name: string; data: Buffer }> = [];
-  const skipped: string[] = [];
-  for (const [name, entry] of Object.entries(backup.files)) {
-    const spec = specFor(name);
-    if (!spec) { skipped.push(name); continue; }
-    if (spec.credential && !opts.restoreCredentials) { skipped.push(name); continue; }
-    restore.push({ name, data: Buffer.from(entry.data, entry.encoding) });
-  }
-  return { restore, skipped };
 }
 
 export interface PreparedRestoreFile {
