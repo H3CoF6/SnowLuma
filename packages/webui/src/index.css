@@ -219,6 +219,17 @@
     box-shadow: var(--shadow-card);
   }
 
+  /* Triangles and forward-pointing glyphs carry more visual mass on the left.
+     A one-pixel optical correction centers them without changing hit areas. */
+  .optical-forward {
+    position: relative;
+    left: 1px;
+  }
+
+  .optical-back {
+    position: relative;
+    right: 1px;
+  }
 }
 
 /* ──────────────────────────────────────────────

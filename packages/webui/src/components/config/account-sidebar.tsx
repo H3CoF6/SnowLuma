@@ -50,7 +50,9 @@ export function AccountSidebar({
           aria-label={collapsed ? '展开账号列表' : '收起账号列表'}
           className="text-muted-foreground"
         >
-          {collapsed ? <ChevronRight className="size-4" /> : <ChevronLeft className="size-4" />}
+          {collapsed
+            ? <ChevronRight className="optical-forward size-4" />
+            : <ChevronLeft className="optical-back size-4" />}
         </Button>
       </div>
 

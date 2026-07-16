@@ -149,7 +149,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
               <Button type="submit" disabled={loading || !password} className="h-12 rounded-xl text-[15px]">
                 {loading ? '验证中…' : (
                   <>
-                    进入控制台 <ArrowRight className="size-4" />
+                    进入控制台 <ArrowRight className="optical-forward size-4" />
                   </>
                 )}
               </Button>

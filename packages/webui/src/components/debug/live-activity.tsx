@@ -161,7 +161,7 @@ export function LiveActivity() {
         <div className="flex items-center gap-2">
           <Segmented value={kindFilter} onChange={setKindFilter}
             options={[{ value: 'all', label: '全部' }, { value: 'event', label: '事件' }, { value: 'action', label: '调用' }]} />
-          <IconBtn onClick={() => setPaused((v) => !v)} title={paused ? '继续' : '暂停'}>{paused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}</IconBtn>
+          <IconBtn onClick={() => setPaused((v) => !v)} title={paused ? '继续' : '暂停'}>{paused ? <Play className="optical-forward h-4 w-4" /> : <Pause className="h-4 w-4" />}</IconBtn>
           <IconBtn onClick={exportJson} title="导出 JSON"><Download className="h-4 w-4" /></IconBtn>
           <IconBtn onClick={() => setRows([])} title="清空"><Trash2 className="h-4 w-4" /></IconBtn>
         </div>

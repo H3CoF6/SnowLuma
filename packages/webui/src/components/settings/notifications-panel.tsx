@@ -250,7 +250,7 @@ function ChannelCard({ channel, testing, onToggle, onTest, onEdit, onDelete }: C
           aria-label="测试发送"
           className="text-muted-foreground hover:text-foreground"
         >
-          {testing ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+          {testing ? <Loader2 className="size-4 animate-spin" /> : <Send className="optical-forward size-4" />}
         </Button>
         <Button
           variant="ghost"

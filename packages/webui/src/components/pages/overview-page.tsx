@@ -163,7 +163,7 @@ export function OverviewPage() {
                 前往「进程注入」加载 QQ，登录后会自动接入 OneBot 流程。
               </p>
             </div>
-            <ArrowRight className="size-4 shrink-0 text-primary" />
+            <ArrowRight className="optical-forward size-4 shrink-0 text-primary" />
           </Link>
         </motion.div>
       )}
@@ -500,7 +500,7 @@ function StatTile({
       ) : (
         <div className="min-w-0 flex-1">{copy}</div>
       )}
-      {to && <ArrowRight className="size-4 shrink-0 text-muted-foreground/60" />}
+      {to && <ArrowRight className="optical-forward size-4 shrink-0 text-muted-foreground/60" />}
     </CardContent>
   );
   if (to) {
@@ -1038,7 +1038,7 @@ function RecentAlertsCard({ config }: { config: AlertsConfig }) {
           <CardDescription>最近 {count} 条 · {config.levels.map((l) => l.toUpperCase()).join(' / ')}</CardDescription>
         </div>
         <Link to="/logs" className="inline-flex shrink-0 items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
-          查看日志 <ArrowRight className="size-3" />
+          查看日志 <ArrowRight className="optical-forward size-3" />
         </Link>
       </CardHeader>
       <CardContent className="min-h-0 flex-1 overflow-auto">
