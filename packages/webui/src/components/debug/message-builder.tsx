@@ -128,11 +128,29 @@ export function MessageBuilder({ segments, onChange, uin, groupId, depth = 0 }: 
     onChange(next);
   };
 
+  // Keep the top-level canvas concentric with its rows at any operator-selected
+  // corner radius. At the default 12px radius this is 20px → 12px over the 8px
+  // inset. Nested forward builders deliberately avoid another canvas surface:
+  // cards-inside-cards add visual noise and cannot remain concentric with a
+  // parent row once the operator selects a compact radius.
+  const nested = depth > 0;
+  const canvasRadius = 'calc(var(--radius) + 0.5rem)';
+  const rowRadius = depth === 0
+    ? 'var(--radius)'
+    : depth === 1
+      ? 'max(0px, calc(var(--radius) - 0.25rem))'
+      : 'max(0px, calc(var(--radius) - 0.5rem))';
+
   return (
-    // A bounded "compose canvas" at every level — so the empty hint reads as an
-    // intentional empty state inside a defined region rather than a stray
-    // centered line floating in the left-aligned form (Apple-HIG alignment).
-    <div className="flex flex-col gap-2 rounded-xl border border-border/50 bg-muted/20 p-2.5">
+    // The root is a bounded compose canvas, so its empty hint reads as an
+    // intentional empty state rather than a stray line. Nested builders inherit
+    // the surrounding node surface instead of drawing another card within it.
+    <div
+      className={nested
+        ? 'flex flex-col gap-2'
+        : 'flex flex-col gap-2 border border-border/50 bg-muted/20 p-2'}
+      style={nested ? undefined : { borderRadius: canvasRadius }}
+    >
       {segments.length === 0 && (
         <p className="py-4 text-center text-xs text-muted-foreground">空消息 — 点下方「添加段」开始</p>
       )}
@@ -142,7 +160,8 @@ export function MessageBuilder({ segments, onChange, uin, groupId, depth = 0 }: 
           key={s._id}
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => { e.stopPropagation(); if (dragFrom !== null) move(dragFrom, i); setDragFrom(null); }}
-          className="rounded-xl border border-border/50 bg-card/60 p-2"
+          className="border border-border/50 bg-card/60 p-2"
+          style={{ borderRadius: rowRadius }}
         >
           {/* Drag is scoped to the grip handle only — making the whole row
               draggable hijacked text selection inside the segment inputs (you
@@ -184,7 +203,7 @@ export function MessageBuilder({ segments, onChange, uin, groupId, depth = 0 }: 
             <div className="grid grid-cols-4 gap-1">
               {COMMON.map((c) => (
                 <button key={c.k} type="button" onClick={() => add(c.k)}
-                  className="flex flex-col items-center gap-1 rounded-lg p-2 text-xs text-muted-foreground hover:bg-accent hover:text-foreground">
+                  className="flex flex-col items-center gap-1 rounded-sm p-2 text-xs text-muted-foreground hover:bg-accent hover:text-foreground">
                   {c.icon}{c.label}
                 </button>
               ))}
@@ -194,7 +213,7 @@ export function MessageBuilder({ segments, onChange, uin, groupId, depth = 0 }: 
               <div className="mt-1 grid grid-cols-4 gap-1">
                 {ADVANCED.map((c) => (
                   <button key={c.k} type="button" onClick={() => add(c.k)}
-                    className="flex flex-col items-center gap-1 rounded-lg p-2 text-xs text-muted-foreground hover:bg-accent hover:text-foreground">
+                    className="flex flex-col items-center gap-1 rounded-sm p-2 text-xs text-muted-foreground hover:bg-accent hover:text-foreground">
                     {c.icon}{c.label}
                   </button>
                 ))}

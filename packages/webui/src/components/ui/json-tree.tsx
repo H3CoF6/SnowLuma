@@ -39,7 +39,7 @@ function Leaf({ value }: { value: string | number | boolean | null }) {
           </button>
           {showImg && (
             <span className="mt-1.5 block">
-              <img src={value} alt="预览" className="max-h-48 rounded-lg border border-border/60" loading="lazy" />
+              <img src={value} alt="预览" className="media-outline max-h-48 rounded-lg" loading="lazy" />
             </span>
           )}
         </>
