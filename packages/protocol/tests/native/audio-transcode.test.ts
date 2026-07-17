@@ -61,7 +61,7 @@ const describeBundledAddon = isReleaseTarget
   ? describe
   : describe.skip;
 
-describeBundledAddon('bundled ffmpeg addon', () => {
+describeBundledAddon('bundled native ffmpeg addon', () => {
   let tmpDir: string;
   beforeAll(() => {
     tmpDir = mkdtempSync(path.join(os.tmpdir(), 'sl-native-audio-test-'));

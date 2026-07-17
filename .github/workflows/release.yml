@@ -45,8 +45,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Verify bundled record MP3 transcode
-        run: pnpm --filter @snowluma/protocol test:native-audio
+      - name: Run native smoke tests
+        run: pnpm test:native
 
       # Always builds the WebUI flavor — no separate "core-only" artifact.
       - name: Build project

@@ -18,6 +18,7 @@
     "test:watch": "pnpm --filter @snowluma/core test:watch",
     "test:common": "pnpm --filter @snowluma/common test",
     "test:all": "pnpm -r --if-present test",
+    "test:native": "pnpm -r --if-present test:native",
     "coverage": "pnpm --filter @snowluma/common test -- --coverage",
     "typecheck": "pnpm -r --if-present typecheck",
     "lint": "eslint .",

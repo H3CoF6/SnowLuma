@@ -6,7 +6,7 @@ import { AUDIO_OUT_FORMATS, convertAudioBytes, isAudioOutFormat } from '@snowlum
 
 // convertAudioBytes is the pure (#165) transcode seam: write input → the
 // addon's dedicated audio transcoder → read output as base64 → always clean up
-// temp files. Unit tests inject a fake; audio-transcode-native.test.ts covers
+// temp files. Unit tests inject a fake; native/audio-transcode.test.ts covers
 // each bundled release-platform addon in the build matrices.
 
 const tmpDir = mkdtempSync(path.join(os.tmpdir(), 'sl-audio-test-'));
