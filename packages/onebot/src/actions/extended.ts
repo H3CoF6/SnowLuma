@@ -1515,13 +1515,102 @@ export const actions = [
 
   defineAction({
     name: 'get_collection_list',
-    summary: '获取收藏列表（占位）',
+    summary: '获取收藏列表',
     readOnly: true,
-    returns: '占位实现，恒返回空数组。',
-    returnsSchema: { type: 'array', description: '收藏列表（占位，恒空）' },
-    params: {},
-    run: async () => {
-      return okResponse([]);
+    returns: '返回收藏条目、是否还有更多数据及底部时间游标。',
+    returnsSchema: {
+      type: 'object',
+      properties: {
+        errCode: { type: 'integer' },
+        errMsg: { type: 'string' },
+        collectionSearchList: {
+          type: 'object',
+          properties: {
+            collectionItemList: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  cid: { type: 'string' },
+                  type: { type: 'integer' },
+                  status: { type: 'integer' },
+                  author: {
+                    type: 'object',
+                    properties: {
+                      type: { type: 'integer' },
+                      numId: { type: 'string' },
+                      strId: { type: 'string' },
+                      groupId: { type: 'string' },
+                      groupName: { type: 'string' },
+                      uid: { type: 'string' },
+                    },
+                    required: ['type', 'numId', 'strId', 'groupId', 'groupName', 'uid'],
+                  },
+                  bid: { type: 'integer' },
+                  category: { type: 'integer' },
+                  createTime: { type: 'string' },
+                  collectTime: { type: 'string' },
+                  modifyTime: { type: 'string' },
+                  sequence: { type: 'string' },
+                  shareUrl: { type: 'string' },
+                  customGroupId: { type: 'integer' },
+                  securityBeat: { type: 'boolean' },
+                  summary: {
+                    type: 'object',
+                    properties: {
+                      textSummary: { type: ['object', 'null'] },
+                      linkSummary: { type: ['object', 'null'] },
+                      gallerySummary: { type: ['object', 'null'] },
+                      audioSummary: { type: ['object', 'null'] },
+                      videoSummary: { type: ['object', 'null'] },
+                      fileSummary: { type: ['object', 'null'] },
+                      locationSummary: { type: ['object', 'null'] },
+                      richMediaSummary: { type: ['object', 'null'] },
+                    },
+                    required: [
+                      'textSummary',
+                      'linkSummary',
+                      'gallerySummary',
+                      'audioSummary',
+                      'videoSummary',
+                      'fileSummary',
+                      'locationSummary',
+                      'richMediaSummary',
+                    ],
+                  },
+                },
+                required: [
+                  'cid',
+                  'type',
+                  'status',
+                  'author',
+                  'bid',
+                  'category',
+                  'createTime',
+                  'collectTime',
+                  'modifyTime',
+                  'sequence',
+                  'shareUrl',
+                  'customGroupId',
+                  'securityBeat',
+                  'summary',
+                ],
+              },
+            },
+            hasMore: { type: 'boolean' },
+            bottomTimeStamp: { type: 'string' },
+          },
+          required: ['collectionItemList', 'hasMore', 'bottomTimeStamp'],
+        },
+      },
+      required: ['errCode', 'errMsg', 'collectionSearchList'],
+    },
+    params: {
+      category: f.int({ min: 0 }).describe('收藏分类 ID；0 表示全部分类').default(0),
+      count: f.int({ min: 1, max: 500 }).describe('最多返回的收藏数量').default(50),
+    },
+    run: async (p, ctx) => {
+      return okResponse(await ctx.bridge.apis.collection.list(p.category, p.count));
     },
   }),
 

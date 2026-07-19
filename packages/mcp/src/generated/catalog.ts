@@ -2413,18 +2413,238 @@ export const ACTIONS: CatalogAction[] = [
   {
     "name": "get_collection_list",
     "aliases": [],
-    "summary": "获取收藏列表（占位）",
-    "returns": "占位实现，恒返回空数组。",
+    "summary": "获取收藏列表",
+    "returns": "返回收藏条目、是否还有更多数据及底部时间游标。",
     "returnsSchema": {
-      "type": "array",
-      "description": "收藏列表（占位，恒空）"
+      "type": "object",
+      "properties": {
+        "errCode": {
+          "type": "integer"
+        },
+        "errMsg": {
+          "type": "string"
+        },
+        "collectionSearchList": {
+          "type": "object",
+          "properties": {
+            "collectionItemList": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "cid": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "integer"
+                  },
+                  "status": {
+                    "type": "integer"
+                  },
+                  "author": {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "integer"
+                      },
+                      "numId": {
+                        "type": "string"
+                      },
+                      "strId": {
+                        "type": "string"
+                      },
+                      "groupId": {
+                        "type": "string"
+                      },
+                      "groupName": {
+                        "type": "string"
+                      },
+                      "uid": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "numId",
+                      "strId",
+                      "groupId",
+                      "groupName",
+                      "uid"
+                    ]
+                  },
+                  "bid": {
+                    "type": "integer"
+                  },
+                  "category": {
+                    "type": "integer"
+                  },
+                  "createTime": {
+                    "type": "string"
+                  },
+                  "collectTime": {
+                    "type": "string"
+                  },
+                  "modifyTime": {
+                    "type": "string"
+                  },
+                  "sequence": {
+                    "type": "string"
+                  },
+                  "shareUrl": {
+                    "type": "string"
+                  },
+                  "customGroupId": {
+                    "type": "integer"
+                  },
+                  "securityBeat": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "object",
+                    "properties": {
+                      "textSummary": {
+                        "type": [
+                          "object",
+                          "null"
+                        ]
+                      },
+                      "linkSummary": {
+                        "type": [
+                          "object",
+                          "null"
+                        ]
+                      },
+                      "gallerySummary": {
+                        "type": [
+                          "object",
+                          "null"
+                        ]
+                      },
+                      "audioSummary": {
+                        "type": [
+                          "object",
+                          "null"
+                        ]
+                      },
+                      "videoSummary": {
+                        "type": [
+                          "object",
+                          "null"
+                        ]
+                      },
+                      "fileSummary": {
+                        "type": [
+                          "object",
+                          "null"
+                        ]
+                      },
+                      "locationSummary": {
+                        "type": [
+                          "object",
+                          "null"
+                        ]
+                      },
+                      "richMediaSummary": {
+                        "type": [
+                          "object",
+                          "null"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "textSummary",
+                      "linkSummary",
+                      "gallerySummary",
+                      "audioSummary",
+                      "videoSummary",
+                      "fileSummary",
+                      "locationSummary",
+                      "richMediaSummary"
+                    ]
+                  }
+                },
+                "required": [
+                  "cid",
+                  "type",
+                  "status",
+                  "author",
+                  "bid",
+                  "category",
+                  "createTime",
+                  "collectTime",
+                  "modifyTime",
+                  "sequence",
+                  "shareUrl",
+                  "customGroupId",
+                  "securityBeat",
+                  "summary"
+                ]
+              }
+            },
+            "hasMore": {
+              "type": "boolean"
+            },
+            "bottomTimeStamp": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "collectionItemList",
+            "hasMore",
+            "bottomTimeStamp"
+          ]
+        }
+      },
+      "required": [
+        "errCode",
+        "errMsg",
+        "collectionSearchList"
+      ]
     },
     "readOnly": true,
-    "params": [],
+    "params": [
+      {
+        "name": "category",
+        "type": "int",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "desc": "收藏分类 ID；0 表示全部分类",
+        "default": 0
+      },
+      {
+        "name": "count",
+        "type": "int",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 500
+        },
+        "desc": "最多返回的收藏数量",
+        "default": 50
+      }
+    ],
     "invariants": [],
     "inputSchema": {
       "type": "object",
-      "properties": {},
+      "properties": {
+        "category": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "收藏分类 ID；0 表示全部分类",
+          "default": 0
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 500,
+          "description": "最多返回的收藏数量",
+          "default": 50
+        }
+      },
       "additionalProperties": true
     },
     "category": "扩展"

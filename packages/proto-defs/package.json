@@ -16,6 +16,10 @@
       "types": "./src/action.ts",
       "default": "./src/action.ts"
     },
+    "./collection": {
+      "types": "./src/collection.ts",
+      "default": "./src/collection.ts"
+    },
     "./element": {
       "types": "./src/element.ts",
       "default": "./src/element.ts"
