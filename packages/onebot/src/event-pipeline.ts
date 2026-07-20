@@ -180,7 +180,7 @@ async function runConvertAndDispatch(ctx: OneBotInstanceContext, log: Logger, ev
       error instanceof Error ? (error.stack ?? error.message) : String(error),
     );
   }
-  ctx.dispatchEvent(converted);
+  ctx.dispatchEvent(converted, 'bridge');
   log.trace(() => [`recv ${event.kind} ⇒ ${String(converted.post_type ?? '?')} (${Date.now() - startedAt}ms)`]);
 }
 

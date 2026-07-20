@@ -1,7 +1,7 @@
 import type { Bridge } from '@snowluma/core/bridge';
 import type { BridgeInterface } from '@snowluma/core/bridge-interface';
 import type { WebHonorType } from '@snowluma/protocol/web/group-honor';
-import type { ApiActionContext } from './api-handler';
+import type { ApiActionContext, MessageSendResult } from './api-handler';
 import type { ConverterContext } from './event-converter';
 import type { MediaStore } from './media-store';
 import type { MessageStore } from './message-store';
@@ -53,11 +53,17 @@ export interface OneBotInstanceContext {
   config: OneBotConfig;
   musicSignUrl?: string;
   cacheMessageMeta(messageId: number, meta: MessageMeta): void;
-  dispatchEvent(event: JsonObject): void;
+  dispatchEvent(event: JsonObject, source?: 'bridge' | 'send'): void;
 }
 
 export function buildApiContext(ref: OneBotInstanceContext): ApiActionContext {
   const { bridge, messageStore, mediaStore, reactionStore } = ref;
+
+  const reportSelfSent = async (result: Promise<MessageSendResult>) => {
+    const settled = await result;
+    if (settled.echoEvent) ref.dispatchEvent(settled.echoEvent, 'send');
+    return settled;
+  };
 
   return {
     bridge,
@@ -71,7 +77,10 @@ export function buildApiContext(ref: OneBotInstanceContext): ApiActionContext {
     ),
     canSendImage: () => true,
     canSendRecord: () => true,
-    sendPrivateMessage: (userId, message, autoEscape, tempGroupId) => sendPrivateMessage(ref, userId, message, autoEscape, tempGroupId),
+    sendPrivateMessage: (userId, message, autoEscape, tempGroupId) =>
+      tempGroupId === undefined
+        ? reportSelfSent(sendPrivateMessage(ref, userId, message, autoEscape))
+        : sendPrivateMessage(ref, userId, message, autoEscape, tempGroupId),
     sendGroupMessage: (groupId, message, autoEscape) => sendGroupMessage(ref, groupId, message, autoEscape),
     deleteMessage: (_messageId, meta) => deleteMessage(bridge, meta),
     getFriendList: () => getFriendList(bridge),

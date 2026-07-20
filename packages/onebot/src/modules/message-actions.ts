@@ -9,6 +9,7 @@ import type { OneBotInstanceContext } from '../instance-context';
 import { GROUP_MESSAGE_EVENT, PRIVATE_MESSAGE_EVENT, hashMessageIdInt32 } from '../message-id';
 import { MessageElementValidationError, parseMessage } from '../message-parser';
 import type { MessageStore } from '../message-store';
+import { sameSelfSentMessage } from '../self-sent-event';
 import type { JsonArray, JsonObject, JsonValue, MessageMeta } from '../types';
 
 const log = createLogger('OneBot');
@@ -497,7 +498,9 @@ export async function setEssenceMessage(
  * copy. Centralizes the `isGroup ↔ eventName ↔ hashMessageIdInt32 event
  * constant` coupling that was hand-paired in six send/forward paths — a
  * mismatch there silently produced a wrong message_id or wrong event
- * attribution. Returns the derived message id.
+ * attribution. Returns the derived message id and, for an eligible plain C2C
+ * Action send, an event for the OneBot dispatch path when QQ has not already
+ * supplied the canonical echo.
  */
 async function finalizeSend(
   ref: OneBotInstanceContext,
@@ -505,7 +508,8 @@ async function finalizeSend(
   targetId: number,
   receipt: { sequence: number; clientSequence: number; random: number; timestamp: number },
   elements: MessageElement[],
-): Promise<number> {
+  reportEcho = false,
+): Promise<MessageSendResult> {
   const eventName = isGroup ? GROUP_MESSAGE_EVENT : PRIVATE_MESSAGE_EVENT;
   const messageId = hashMessageIdInt32(receipt.sequence, targetId, eventName);
   ref.cacheMessageMeta(messageId, {
@@ -517,7 +521,7 @@ async function finalizeSend(
     random: receipt.random,
     timestamp: receipt.timestamp,
   });
-  await cacheSelfSentMessage(ref, {
+  const echoEvent = await cacheSelfSentMessage(ref, {
     isGroup,
     sessionId: targetId,
     messageId,
@@ -525,7 +529,9 @@ async function finalizeSend(
     timestamp: receipt.timestamp,
     elements,
   });
-  return messageId;
+  return reportEcho && echoEvent && receipt.sequence > 0 && receipt.timestamp > 0
+    ? { messageId, echoEvent }
+    : { messageId };
 }
 
 async function cacheSelfSentMessage(
@@ -538,16 +544,15 @@ async function cacheSelfSentMessage(
     timestamp: number;
     elements: MessageElement[];
   },
-): Promise<void> {
+): Promise<JsonObject | null> {
   const { isGroup, sessionId, messageId, sequence, timestamp, elements } = options;
-  if (!Number.isInteger(messageId) || messageId === 0) return;
+  if (!Number.isInteger(messageId) || messageId === 0) return null;
 
-  // Defensive: tests mock `ref.messageStore` as `{ findEvent: ... } as any`
-  // without the full MessageStore surface. Production always has it. Bail
-  // quietly when the helper isn't there — the user-visible `cacheMessageMeta`
-  // already covers recall/delete; only `/get_msg` lookup degrades.
+  // Defensive: tests may mock `ref.messageStore` without the full MessageStore
+  // surface. Production always has it. Without storage, recall still works via
+  // cacheMessageMeta, but `/get_msg` and the synthetic event are unavailable.
   const storeEvent = (ref.messageStore as { storeEvent?: typeof ref.messageStore.storeEvent }).storeEvent;
-  if (typeof storeEvent !== 'function') return;
+  if (typeof storeEvent !== 'function') return null;
 
   try {
     // We deliberately pass no URL resolvers — for a synthetic self-sent
@@ -595,16 +600,23 @@ async function cacheSelfSentMessage(
       event.target_id = sessionId;
     }
 
-    // Store directly via messageStore (bypassing dispatchEvent — we
-    // don't want to broadcast this synthetic event over the WS bridge;
-    // the QQ server's own echo-back is the source of truth for that).
+    // QQ can win the race between the send receipt and local event
+    // construction. Keep its richer canonical event and let the already-run
+    // bridge dispatch remain the single downstream notification.
+    const existing = ref.messageStore.findEvent(messageId);
+    if (existing && sameSelfSentMessage(existing, event)) return null;
+
+    // Persist before dispatch so `/get_msg` is immediately consistent for a
+    // client reacting to the synthetic message_sent notification.
     storeEvent.call(ref.messageStore, messageId, isGroup, sessionId, sequence, eventName, event);
+    return event;
   } catch (err) {
-    // Never let event-cache failures sink the send call — recall + return
-    // value are what callers care about; /get_msg degrading to "not found"
-    // is the worst case here and matches the previous behaviour.
+    // Never turn a successful QQ send into a failed Action after the fact.
+    // The warning keeps the loss observable; `/get_msg` and the optional
+    // synthetic event degrade together while recall still uses cached meta.
     log.warn('[OneBot] failed to cache self-sent message %d: %s',
       messageId, err instanceof Error ? err.message : String(err));
+    return null;
   }
 }
 
@@ -808,9 +820,11 @@ export async function sendPrivateMessage(
   }
   if (!lastReceipt) throw new Error('message is empty');
 
-  const messageId = await finalizeSend(ref, false, userId, lastReceipt, elements);
-
-  return { messageId };
+  // Dedicated C2C file sends may split one Action into several QQ messages.
+  // A single synthetic event would misrepresent that wire behaviour, so only
+  // report the one-batch friend path handled by sendPrivate().
+  const reportEcho = tempGroupId === undefined && allFileElements.length === 0;
+  return finalizeSend(ref, false, userId, lastReceipt, elements, reportEcho);
 }
 
 export async function sendGroupMessage(
@@ -909,9 +923,7 @@ export async function sendGroupMessage(
   }
   if (!lastReceipt) throw new Error('message is empty');
 
-  const messageId = await finalizeSend(ref, true, groupId, lastReceipt, elements);
-
-  return { messageId };
+  return finalizeSend(ref, true, groupId, lastReceipt, elements);
 }
 
 export interface ForwardPreviewMeta {
@@ -935,7 +947,7 @@ export async function sendGroupForwardMessage(
   const forwardId = await ref.bridge.apis.forward.upload(nodes, groupId);
   const previewElement = buildForwardPreviewElement(forwardId, nodes, true, meta);
   const receipt = await ref.bridge.apis.message.sendGroup(groupId, [previewElement]);
-  const messageId = await finalizeSend(ref, true, groupId, receipt, [previewElement]);
+  const { messageId } = await finalizeSend(ref, true, groupId, receipt, [previewElement]);
 
   return { messageId, forwardId };
 }
@@ -953,7 +965,7 @@ export async function sendPrivateForwardMessage(
   const forwardId = await ref.bridge.apis.forward.upload(nodes, undefined, userId);
   const previewElement = buildForwardPreviewElement(forwardId, nodes, false, meta);
   const receipt = await ref.bridge.apis.message.sendPrivate(userId, [previewElement]);
-  const messageId = await finalizeSend(ref, false, userId, receipt, [previewElement]);
+  const { messageId } = await finalizeSend(ref, false, userId, receipt, [previewElement]);
 
   return { messageId, forwardId };
 }
@@ -1002,10 +1014,10 @@ export async function forwardSingleMessage(
   let messageIdOut: number;
   if (target.groupId) {
     receipt = await ref.bridge.apis.message.sendGroup(target.groupId, elements);
-    messageIdOut = await finalizeSend(ref, true, target.groupId, receipt, elements);
+    ({ messageId: messageIdOut } = await finalizeSend(ref, true, target.groupId, receipt, elements));
   } else {
     receipt = await ref.bridge.apis.message.sendPrivate(target.userId!, elements);
-    messageIdOut = await finalizeSend(ref, false, target.userId!, receipt, elements);
+    ({ messageId: messageIdOut } = await finalizeSend(ref, false, target.userId!, receipt, elements));
   }
 
   return { messageId: messageIdOut };
