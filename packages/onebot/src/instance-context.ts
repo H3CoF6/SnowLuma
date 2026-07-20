@@ -38,7 +38,7 @@ import {
 } from './modules/message-actions';
 import { handleGroupAddRequest } from './modules/request-actions';
 import type { ReactionStore } from './reaction-store';
-import type { JsonObject, MessageMeta, OneBotConfig } from './types';
+import { hasAuthoritativeSequence, type JsonObject, type MessageMeta, type OneBotConfig } from './types';
 
 export interface OneBotInstanceContext {
   uin: string;
@@ -108,12 +108,14 @@ export function buildApiContext(ref: OneBotInstanceContext): ApiActionContext {
       const meta = messageStore.findMeta(messageId);
       if (!meta) throw new Error('message not found');
       if (!meta.isGroup) throw new Error('emoji reactions are not supported on private messages');
+      if (!hasAuthoritativeSequence(meta)) throw new Error('message has no authoritative QQ sequence');
       await bridge.apis.interaction.setReaction(meta.targetId, meta.sequence, emojiId, set);
     },
     fetchEmojiLikeUsers: async (messageId, emojiId, count, offset = 0) => {
       const meta = messageStore.findMeta(messageId);
       if (!meta) throw new Error('message not found');
       if (!meta.isGroup) throw new Error('emoji reactions are not supported on private messages');
+      if (!hasAuthoritativeSequence(meta)) throw new Error('message has no authoritative QQ sequence');
       const raw = reactionStore.listUsers(meta.targetId, meta.sequence, emojiId, count, offset);
       const users = raw.map(r => ({ uin: r.operatorUin, uid: r.operatorUid, setAt: r.setAt }));
       const cachedCount = reactionStore.countUsers(meta.targetId, meta.sequence, emojiId);

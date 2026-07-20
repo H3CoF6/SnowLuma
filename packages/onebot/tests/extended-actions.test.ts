@@ -16,6 +16,7 @@ function fakeMeta(overrides: Partial<MessageMeta> = {}): MessageMeta {
     isGroup: true,
     targetId: 100,
     sequence: 555,
+    sequenceAuthoritative: true,
     eventName: 'group_message',
     clientSequence: 0,
     random: 0,
@@ -648,11 +649,44 @@ describe('extended-actions / set_/complete_/cancel_group_todo', () => {
     expect(res).toMatchObject({ status: 'failed', retcode: 100 });
   });
 
+  it('rejects a local-only message id without calling the group todo protocol', async () => {
+    const setGroupTodo = vi.fn(async () => {});
+    const bridge = fakeBridge({ setGroupTodo });
+    const ctx = fakeCtx(bridge, {
+      getMessageMeta: () => fakeMeta({ sequence: 0, sequenceAuthoritative: false }),
+    });
+
+    const res = await makeHandler(ctx).handle('set_group_todo', { group_id: 100, message_id: 1 });
+
+    expect(res).toMatchObject({ status: 'failed', retcode: 100 });
+    expect(setGroupTodo).not.toHaveBeenCalled();
+  });
+
   it('rejects missing params', async () => {
     const r1 = await makeHandler(fakeCtx(fakeBridge())).handle('set_group_todo', { message_id: 1 });
     const r2 = await makeHandler(fakeCtx(fakeBridge())).handle('set_group_todo', { group_id: 1 });
     expect(r1).toMatchObject({ status: 'failed', retcode: 1400 });
     expect(r2).toMatchObject({ status: 'failed', retcode: 1400 });
+  });
+});
+
+describe('extended-actions / set_group_reaction', () => {
+  it('rejects a local-only message id without calling the reaction protocol', async () => {
+    const setGroupReaction = vi.fn(async () => {});
+    const bridge = fakeBridge({ setGroupReaction });
+    const ctx = fakeCtx(bridge, {
+      getMessageMeta: () => fakeMeta({ sequence: 0, sequenceAuthoritative: false }),
+    });
+
+    const res = await makeHandler(ctx).handle('set_group_reaction', {
+      group_id: 100,
+      message_id: 1,
+      code: '66',
+      is_set: true,
+    });
+
+    expect(res).toMatchObject({ status: 'failed', retcode: 100 });
+    expect(setGroupReaction).not.toHaveBeenCalled();
   });
 });
 

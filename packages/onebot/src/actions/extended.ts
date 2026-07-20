@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import type { ApiActionContext } from '../api-handler';
 import { asNumber, asString } from '../api-handler';
 import type { ForwardPreviewMeta } from '../modules/message-actions';
-import { JsonObject, RETCODE, failedResponse, okResponse } from '../types';
+import { hasAuthoritativeSequence, RETCODE, failedResponse, okResponse, type JsonObject } from '../types';
 import { defineAction, groupAction, groupUserAction, f } from '../action-kit';
 import { GROUP_MESSAGE_EVENT, hashMessageIdInt32 } from '../message-id';
 
@@ -110,6 +110,9 @@ async function groupTodoRun(
   if (!meta) return failedResponse(RETCODE.ACTION_FAILED, 'message not found');
   if (!meta.isGroup || meta.targetId !== p.group_id) {
     return failedResponse(RETCODE.ACTION_FAILED, 'message does not belong to this group');
+  }
+  if (!hasAuthoritativeSequence(meta)) {
+    return failedResponse(RETCODE.ACTION_FAILED, 'message has no authoritative QQ sequence');
   }
   await op(p.group_id, BigInt(meta.sequence));
   return okResponse();
@@ -243,6 +246,10 @@ export const actions = [
 
       if (p.group_id && p.group_id !== meta.targetId) {
         return failedResponse(RETCODE.BAD_REQUEST, 'group_id does not match message session');
+      }
+
+      if (!hasAuthoritativeSequence(meta)) {
+        return failedResponse(RETCODE.ACTION_FAILED, 'message has no authoritative QQ sequence');
       }
 
       await ctx.bridge.apis.interaction.setReaction(meta.targetId, meta.sequence, p.code, p.is_set);
