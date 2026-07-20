@@ -3435,13 +3435,23 @@ export const ACTIONS: CatalogAction[] = [
           "createTime": {
             "type": "integer",
             "description": "相册创建时间（unix 秒）"
+          },
+          "createuin": {
+            "type": "string",
+            "description": "相册创建者 QQ 号"
+          },
+          "createnickname": {
+            "type": "string",
+            "description": "相册创建者昵称（原始 Unicode）"
           }
         },
         "required": [
           "id",
           "name",
           "picNum",
-          "createTime"
+          "createTime",
+          "createuin",
+          "createnickname"
         ]
       }
     },
@@ -5483,7 +5493,7 @@ export const ACTIONS: CatalogAction[] = [
   {
     "name": "get_qun_album_list",
     "aliases": [],
-    "returns": "NapCat 风格的相册列表封套：{album_list, attach_info, has_more}（本实现 attach_info 恒为空串、has_more 恒为 false）。",
+    "returns": "NapCat 风格的相册列表封套：{album_list, attach_info, has_more}。",
     "returnsSchema": {
       "type": "object",
       "properties": {
@@ -5497,34 +5507,52 @@ export const ACTIONS: CatalogAction[] = [
                 "type": "string",
                 "description": "相册 id"
               },
-              "album_name": {
+              "name": {
                 "type": "string",
                 "description": "相册名称"
               },
               "create_time": {
-                "type": "integer",
+                "type": "string",
                 "description": "相册创建时间（unix 秒）"
               },
-              "pic_num": {
-                "type": "integer",
-                "description": "相册内照片数量"
+              "upload_number": {
+                "type": "string",
+                "description": "相册内媒体数量"
+              },
+              "creator": {
+                "type": "object",
+                "description": "相册创建者信息",
+                "properties": {
+                  "uin": {
+                    "type": "string",
+                    "description": "创建者 QQ 号"
+                  },
+                  "uid": {
+                    "type": "string",
+                    "description": "创建者 UID"
+                  },
+                  "nick": {
+                    "type": "string",
+                    "description": "创建者原始 Unicode 昵称"
+                  }
+                }
               }
             },
             "required": [
               "album_id",
-              "album_name",
+              "name",
               "create_time",
-              "pic_num"
+              "upload_number"
             ]
           }
         },
         "attach_info": {
           "type": "string",
-          "description": "分页游标（本 web 实现一次取满，恒为空串）"
+          "description": "下一页分页游标"
         },
         "has_more": {
           "type": "boolean",
-          "description": "是否还有更多（本 web 实现恒为 false）"
+          "description": "是否还有更多"
         }
       },
       "required": [
@@ -5545,6 +5573,15 @@ export const ACTIONS: CatalogAction[] = [
           "minimum": 1
         },
         "desc": "群号"
+      },
+      {
+        "name": "attach_info",
+        "type": "string",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "default": ""
       }
     ],
     "invariants": [],
@@ -5556,6 +5593,10 @@ export const ACTIONS: CatalogAction[] = [
           "minimum": 1,
           "description": "群号",
           "x-role": "group_id"
+        },
+        "attach_info": {
+          "type": "string",
+          "default": ""
         }
       },
       "required": [
