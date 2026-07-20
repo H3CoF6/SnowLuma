@@ -131,6 +131,15 @@ function makeGroupDecreasePacket(
   };
 }
 
+function makeNestedOperatorInfoFixture(): Uint8Array {
+  // QQ may wrap GroupChange.operatorBytes in OperatorInfo and append metadata
+  // after the UID, including for GroupChange.decreaseType=131.
+  return Buffer.from(
+    '0a180a0a755f6f70657261746f7210061a060102030405062001',
+    'hex',
+  );
+}
+
 describe('parseMsgPush group member increase', () => {
   it('does not fall back to the group id when a joining uid is unresolved', () => {
     const [event] = parseMsgPush(makeGroupIncreasePacket('u_new_member'), makeIdentity()) as GroupMemberJoin[];
@@ -159,12 +168,8 @@ describe('parseMsgPush group member increase', () => {
   it('decodes nested operator info used by member-increase pushes', () => {
     const member = makeGroupMember(22222, 'u_member');
     const operator = makeGroupMember(33333, 'u_operator');
-    const operatorBytes = Buffer.from(
-      '0a180a0a755f6f70657261746f7210061a060102030405062001',
-      'hex',
-    );
     const [event] = parseMsgPush(
-      makeGroupIncreasePacket(member.uid, '', GROUP_ID, operatorBytes),
+      makeGroupIncreasePacket(member.uid, '', GROUP_ID, makeNestedOperatorInfoFixture()),
       makeIdentity([member, operator]),
     ) as GroupMemberJoin[];
 
@@ -272,14 +277,8 @@ describe('parseMsgPush group member decrease', () => {
   it('decodes nested operator info for ordinary member removals (#253)', () => {
     const member = makeGroupMember(22222, 'u_member');
     const operator = makeGroupMember(33333, 'u_operator');
-    // GroupChange.operatorBytes is polymorphic on the wire. QQ may send an
-    // OperatorInfo envelope for type=131, including metadata after the UID.
-    const operatorBytes = Buffer.from(
-      '0a180a0a755f6f70657261746f7210061a060102030405062001',
-      'hex',
-    );
     const [event] = parseMsgPush(
-      makeGroupDecreasePacket(member.uid, 131, operatorBytes),
+      makeGroupDecreasePacket(member.uid, 131, makeNestedOperatorInfoFixture()),
       makeIdentity([member, operator]),
     ) as Extract<QQEventVariant, { kind: 'group_member_leave' }>[];
 
