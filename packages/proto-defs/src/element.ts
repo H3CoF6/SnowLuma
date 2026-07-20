@@ -222,11 +222,9 @@ export interface SrcMsg {
   troopName?: pb<11, bytes>;
 }
 
-// Decoded content of SrcMsg.pbReserve(8). For a c2c (friend) reply the
-// canonical replied-to sequence lives here as `friendSequence`, NOT in
-// `origSeqs` (which carries the per-sender clientSequence). Lagrange resolves an
-// incoming reply as `Sequence = reserve.FriendSequence ?? OrigSeqs[0]`
-// (dev/Lagrange.Core/.../SourceMsg.PbPreserve.cs ProtoMember(8)).
+// Decoded content of SrcMsg.pbReserve(8). `friendSequence` is a friendship-side
+// counter observed in QQNT, not the conversation-wide C2C NT message sequence;
+// private reply resolution therefore uses SrcMsg.origSeqs plus direction/time.
 export interface SrcMsgPbReserve {
   receiverUid?:    pb<7, string>;
   friendSequence?: pb<8, uint_32>;

@@ -3250,7 +3250,7 @@ export const ACTIONS: CatalogAction[] = [
   {
     "name": "get_friend_msg_history",
     "aliases": [],
-    "summary": "获取好友消息历史",
+    "summary": "获取好友消息历史（无锚点时从服务器获取最新双向记录）",
     "returns": "{ messages }：好友消息事件对象数组（每项为 OneBot 消息事件，内部字段不固定）。",
     "returnsSchema": {
       "type": "object",
@@ -3297,7 +3297,8 @@ export const ACTIONS: CatalogAction[] = [
           "type": "integer",
           "minimum": 0
         },
-        "default": 20
+        "default": 20,
+        "desc": "无锚点时从 QQ 服务器获取最新双向历史；服务器或身份解析失败时动作失败，不返回不完整的本地缓存"
       },
       {
         "name": "reverse_order",
@@ -3327,6 +3328,7 @@ export const ACTIONS: CatalogAction[] = [
         "count": {
           "type": "integer",
           "minimum": 0,
+          "description": "无锚点时从 QQ 服务器获取最新双向历史；服务器或身份解析失败时动作失败，不返回不完整的本地缓存",
           "default": 20
         },
         "reverse_order": {
