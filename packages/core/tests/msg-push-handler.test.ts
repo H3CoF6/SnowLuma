@@ -156,6 +156,24 @@ describe('parseMsgPush group member increase', () => {
     expect(event.operatorUid).toBe(operator.uid);
   });
 
+  it('decodes nested operator info used by member-increase pushes', () => {
+    const member = makeGroupMember(22222, 'u_member');
+    const operator = makeGroupMember(33333, 'u_operator');
+    const operatorBytes = Buffer.from(
+      '0a180a0a755f6f70657261746f7210061a060102030405062001',
+      'hex',
+    );
+    const [event] = parseMsgPush(
+      makeGroupIncreasePacket(member.uid, '', GROUP_ID, operatorBytes),
+      makeIdentity([member, operator]),
+    ) as GroupMemberJoin[];
+
+    expect(event.userUin).toBe(member.uin);
+    expect(event.operatorUin).toBe(operator.uin);
+    expect(event.userUid).toBe(member.uid);
+    expect(event.operatorUid).toBe(operator.uid);
+  });
+
   it('derives approve vs invite from the member-change operation code (#237)', () => {
     const member = makeGroupMember(22222, 'u_member');
     const operator = makeGroupMember(33333, 'u_operator');
@@ -242,6 +260,26 @@ describe('parseMsgPush group member decrease', () => {
     const operator = makeGroupMember(33333, 'u_operator');
     const [event] = parseMsgPush(
       makeGroupDecreasePacket(member.uid, 131, Buffer.from(operator.uid, 'utf8')),
+      makeIdentity([member, operator]),
+    ) as Extract<QQEventVariant, { kind: 'group_member_leave' }>[];
+
+    expect(event.userUin).toBe(member.uin);
+    expect(event.operatorUin).toBe(operator.uin);
+    expect(event.operatorUid).toBe(operator.uid);
+    expect(event.leaveType).toBe('kick');
+  });
+
+  it('decodes nested operator info for ordinary member removals (#253)', () => {
+    const member = makeGroupMember(22222, 'u_member');
+    const operator = makeGroupMember(33333, 'u_operator');
+    // GroupChange.operatorBytes is polymorphic on the wire. QQ may send an
+    // OperatorInfo envelope for type=131, including metadata after the UID.
+    const operatorBytes = Buffer.from(
+      '0a180a0a755f6f70657261746f7210061a060102030405062001',
+      'hex',
+    );
+    const [event] = parseMsgPush(
+      makeGroupDecreasePacket(member.uid, 131, operatorBytes),
       makeIdentity([member, operator]),
     ) as Extract<QQEventVariant, { kind: 'group_member_leave' }>[];
 
