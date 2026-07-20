@@ -9,6 +9,7 @@ import { ApiHandler, type ApiActionContext } from '../src/api-handler';
 import type { BridgeInterface } from '../../src/bridge/bridge-interface';
 import type { GroupRequestInfo } from '@snowluma/protocol/qq-info';
 import type { MessageMeta } from '../src/types';
+import { GROUP_MESSAGE_EVENT, hashMessageIdInt32 } from '../src/message-id';
 
 function fakeMeta(overrides: Partial<MessageMeta> = {}): MessageMeta {
   return {
@@ -70,6 +71,7 @@ const APIS_ROUTING: Record<string, [string, string]> = {
   getStrangerStatus: ['extras', 'getStrangerStatus'],
   fetchAiVoiceList: ['extras', 'fetchAiVoiceList'],
   fetchAiVoice: ['extras', 'fetchAiVoice'],
+  sendAiVoice: ['extras', 'sendAiVoice'],
 };
 
 function fakeBridge(overrides: Record<string, any> = {}): BridgeInterface {
@@ -757,19 +759,37 @@ describe('extended-actions / get_ai_record', () => {
 });
 
 describe('extended-actions / send_group_ai_record', () => {
-  it('side-effects fetchAiVoice (no URL fetch) and returns message_id=0', async () => {
-    const fetchAiVoice = vi.fn(async () => ({ fileUuid: 'uuid' }));
+  it('returns the canonical group message id from the matched self-message receipt', async () => {
+    const sendAiVoice = vi.fn(async () => ({
+      sequence: 319,
+    }));
     const fetchGroupPttUrlByNode = vi.fn();
     const bridge = fakeBridge({
-      fetchAiVoice: fetchAiVoice as any,
+      sendAiVoice: sendAiVoice as any,
       fetchGroupPttUrlByNode: fetchGroupPttUrlByNode as any,
     });
     const res = await makeHandler(fakeCtx(bridge)).handle('send_group_ai_record', {
       group_id: 100, character: 'v', text: 'hi',
     });
-    expect(fetchAiVoice).toHaveBeenCalledOnce();
+    expect(sendAiVoice).toHaveBeenCalledWith(100, 'v', 'hi', 1);
     expect(fetchGroupPttUrlByNode).not.toHaveBeenCalled();
-    expect(res).toMatchObject({ status: 'ok', data: { message_id: 0 } });
+    expect(res).toMatchObject({
+      status: 'ok',
+      data: { message_id: hashMessageIdInt32(319, 100, GROUP_MESSAGE_EVENT) },
+    });
+  });
+
+  it('surfaces a missing canonical receipt instead of returning a fake id', async () => {
+    const bridge = fakeBridge({
+      sendAiVoice: (async () => {
+        throw new Error('AI voice was published but no matching group-message receipt arrived');
+      }) as any,
+    });
+    const res = await makeHandler(fakeCtx(bridge)).handle('send_group_ai_record', {
+      group_id: 100, character: 'v', text: 'hi',
+    });
+    expect(res).toMatchObject({ status: 'failed', retcode: 100 });
+    expect(res.wording).toMatch(/group-message receipt/i);
   });
 });
 

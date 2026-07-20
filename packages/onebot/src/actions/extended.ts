@@ -4,6 +4,7 @@ import { asNumber, asString } from '../api-handler';
 import type { ForwardPreviewMeta } from '../modules/message-actions';
 import { JsonObject, RETCODE, failedResponse, okResponse } from '../types';
 import { defineAction, groupAction, groupUserAction, f } from '../action-kit';
+import { GROUP_MESSAGE_EVENT, hashMessageIdInt32 } from '../message-id';
 
 const DOWNLOAD_FILE_MAX_BYTES = 1024 * 1024 * 1024; // 1 GiB
 const DOWNLOAD_FILE_TIMEOUT_MS = 60_000;
@@ -1846,20 +1847,25 @@ export const actions = [
     },
   }),
 
-  // NapCat 的 send_group_ai_record 是仅产生副作用的调用。
-  // 调用 fetchAiVoice 会把语音发布到群里。
-  // 返回的 message_id 始终为 0，因为 oidb 调用不会回显消息 ID。
   groupAction({
     name: 'send_group_ai_record',
     summary: '发送 AI 语音到群',
+    returns: '{ message_id }：已发送 AI 语音的 OneBot 消息 ID。',
     params: {
       character: f.string({ allowEmpty: false }),
       text: f.string({ allowEmpty: false }),
       chat_type: f.int({ min: 0 }).default(1),
     },
     run: async (p, ctx) => {
-      await ctx.bridge.apis.extras.fetchAiVoice(p.group_id, p.character, p.text, p.chat_type);
-      return okResponse({ message_id: 0 });
+      const receipt = await ctx.bridge.apis.extras.sendAiVoice(
+        p.group_id,
+        p.character,
+        p.text,
+        p.chat_type,
+      );
+      return okResponse({
+        message_id: hashMessageIdInt32(receipt.sequence, p.group_id, GROUP_MESSAGE_EVENT),
+      });
     },
   }),
 

@@ -205,7 +205,7 @@ export interface UserOnlineStatus {
   ext_status: number;
 }
 
-// — send_group_ai_record 返回（合成是异步副作用，message_id 总为 0） —
+// — send_group_ai_record 返回 —
 export interface SendGroupAiRecordResult {
   message_id: number;
 }
