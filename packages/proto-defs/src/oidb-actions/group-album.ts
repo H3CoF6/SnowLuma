@@ -46,6 +46,8 @@ export interface GroupAlbumInfo {
   modifyTime?:     pb<6, uint_64>;
   lastUploadTime?: pb<7, uint_64>;
   uploadNumber?:   pb<8, uint_64>;
+  // QQ NT AlbumCodec_DecodeAlbumInfo tag 9 reuses the media-list MediaInfo codec.
+  cover?:          pb<9, MediaInfo>;
   creator?:        pb<10, AlbumCreator>;
   topFlag?:        pb<11, uint_64>;
   busiType?:       pb<12, int_32>;

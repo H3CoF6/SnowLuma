@@ -3438,6 +3438,132 @@ export const ACTIONS: CatalogAction[] = [
             "type": "integer",
             "description": "相册创建时间（unix 秒）"
           },
+          "last_upload_time": {
+            "type": "integer",
+            "description": "最后上传时间（unix 秒）"
+          },
+          "cover": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "相册封面；没有封面时为 null",
+            "properties": {
+              "type": {
+                "type": "integer",
+                "description": "封面媒体类型"
+              },
+              "image": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "description": "封面图片信息",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "图片名称"
+                  },
+                  "sloc": {
+                    "type": "string",
+                    "description": "图片短定位标识"
+                  },
+                  "lloc": {
+                    "type": "string",
+                    "description": "图片长定位标识"
+                  },
+                  "photoUrls": {
+                    "type": "array",
+                    "description": "不同规格的封面地址",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "spec": {
+                          "type": "integer",
+                          "description": "图片规格"
+                        },
+                        "url": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "properties": {
+                            "url": {
+                              "type": "string",
+                              "description": "封面地址"
+                            },
+                            "width": {
+                              "type": "integer",
+                              "description": "封面宽度"
+                            },
+                            "height": {
+                              "type": "integer",
+                              "description": "封面高度"
+                            }
+                          },
+                          "required": [
+                            "url",
+                            "width",
+                            "height"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "spec",
+                        "url"
+                      ]
+                    }
+                  },
+                  "defaultUrl": {
+                    "type": [
+                      "object",
+                      "null"
+                    ],
+                    "properties": {
+                      "url": {
+                        "type": "string",
+                        "description": "封面地址"
+                      },
+                      "width": {
+                        "type": "integer",
+                        "description": "封面宽度"
+                      },
+                      "height": {
+                        "type": "integer",
+                        "description": "封面高度"
+                      }
+                    },
+                    "required": [
+                      "url",
+                      "width",
+                      "height"
+                    ]
+                  },
+                  "isGif": {
+                    "type": "boolean",
+                    "description": "是否为动图"
+                  },
+                  "hasRaw": {
+                    "type": "boolean",
+                    "description": "是否有原图"
+                  }
+                },
+                "required": [
+                  "name",
+                  "sloc",
+                  "lloc",
+                  "photoUrls",
+                  "defaultUrl",
+                  "isGif",
+                  "hasRaw"
+                ]
+              }
+            },
+            "required": [
+              "type",
+              "image"
+            ]
+          },
           "createuin": {
             "type": "string",
             "description": "相册创建者 QQ 号"
@@ -3452,6 +3578,8 @@ export const ACTIONS: CatalogAction[] = [
           "name",
           "picNum",
           "createTime",
+          "last_upload_time",
+          "cover",
           "createuin",
           "createnickname"
         ]
@@ -5517,9 +5645,135 @@ export const ACTIONS: CatalogAction[] = [
                 "type": "string",
                 "description": "相册创建时间（unix 秒）"
               },
+              "last_upload_time": {
+                "type": "string",
+                "description": "最后上传时间（unix 秒）"
+              },
               "upload_number": {
                 "type": "string",
                 "description": "相册内媒体数量"
+              },
+              "cover": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "description": "相册封面；没有封面时为 null",
+                "properties": {
+                  "type": {
+                    "type": "integer",
+                    "description": "封面媒体类型"
+                  },
+                  "image": {
+                    "type": [
+                      "object",
+                      "null"
+                    ],
+                    "description": "封面图片信息",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "description": "图片名称"
+                      },
+                      "sloc": {
+                        "type": "string",
+                        "description": "图片短定位标识"
+                      },
+                      "lloc": {
+                        "type": "string",
+                        "description": "图片长定位标识"
+                      },
+                      "photoUrls": {
+                        "type": "array",
+                        "description": "不同规格的封面地址",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "spec": {
+                              "type": "integer",
+                              "description": "图片规格"
+                            },
+                            "url": {
+                              "type": [
+                                "object",
+                                "null"
+                              ],
+                              "properties": {
+                                "url": {
+                                  "type": "string",
+                                  "description": "封面地址"
+                                },
+                                "width": {
+                                  "type": "integer",
+                                  "description": "封面宽度"
+                                },
+                                "height": {
+                                  "type": "integer",
+                                  "description": "封面高度"
+                                }
+                              },
+                              "required": [
+                                "url",
+                                "width",
+                                "height"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "spec",
+                            "url"
+                          ]
+                        }
+                      },
+                      "defaultUrl": {
+                        "type": [
+                          "object",
+                          "null"
+                        ],
+                        "properties": {
+                          "url": {
+                            "type": "string",
+                            "description": "封面地址"
+                          },
+                          "width": {
+                            "type": "integer",
+                            "description": "封面宽度"
+                          },
+                          "height": {
+                            "type": "integer",
+                            "description": "封面高度"
+                          }
+                        },
+                        "required": [
+                          "url",
+                          "width",
+                          "height"
+                        ]
+                      },
+                      "isGif": {
+                        "type": "boolean",
+                        "description": "是否为动图"
+                      },
+                      "hasRaw": {
+                        "type": "boolean",
+                        "description": "是否有原图"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sloc",
+                      "lloc",
+                      "photoUrls",
+                      "defaultUrl",
+                      "isGif",
+                      "hasRaw"
+                    ]
+                  }
+                },
+                "required": [
+                  "type",
+                  "image"
+                ]
               },
               "creator": {
                 "type": "object",
@@ -5544,7 +5798,9 @@ export const ACTIONS: CatalogAction[] = [
               "album_id",
               "name",
               "create_time",
-              "upload_number"
+              "last_upload_time",
+              "upload_number",
+              "cover"
             ]
           }
         },

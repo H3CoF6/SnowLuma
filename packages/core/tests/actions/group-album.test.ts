@@ -8,8 +8,40 @@ import { GroupAlbumApi } from '../../src/bridge/apis/group-album';
 import { mockBridge } from './_helpers';
 import type {
   GroupAlbumListRequestWireOracle,
+  GroupAlbumListResponseWireOracle,
   GroupAlbumMediaListRequestWireOracle,
 } from './group-album-wire-fixture';
+
+function albumListResponseWithCover(): Uint8Array {
+  return protobuf_encode<GroupAlbumListResponseWireOracle>({
+    data: {
+      albumList: [{
+        albumId: 'album-id',
+        owner: '10001',
+        name: '测试相册',
+        description: 'desc',
+        createTime: 1700000000n,
+        lastUploadTime: 1700000123n,
+        uploadNumber: 5n,
+        cover: {
+          type: 1,
+          image: {
+            name: 'cover.jpg',
+            sloc: 'small-location',
+            lloc: 'large-location',
+            photoUrls: [{
+              spec: 3,
+              url: { url: 'https://example.test/cover-320.jpg', width: 320, height: 180 },
+            }],
+            defaultUrl: { url: 'https://example.test/cover.jpg', width: 1280, height: 720 },
+            isGif: false,
+            hasRaw: true,
+          },
+        },
+      }],
+    },
+  });
+}
 
 describe('apis/group-album', () => {
   it('uses QQ NT AlbumService and puts the pagination cursor in request body field 2', async () => {
@@ -70,6 +102,8 @@ describe('apis/group-album', () => {
       owner: '10001',
       createuin: '10001',
       createnickname: '😂[em]e328514[/em]',
+      last_upload_time: 0,
+      cover: null,
     }]);
   });
 
@@ -105,6 +139,64 @@ describe('apis/group-album', () => {
       create_time: '1700000000',
       upload_number: '5',
       creator: { uin: '10001', nick: '😂' },
+    });
+  });
+
+  it('decodes the native album cover field for get_qun_album_list', async () => {
+    const bridge = mockBridge();
+    bridge.sendRawPacket.mockResolvedValueOnce({
+      success: true,
+      gotResponse: true,
+      errorCode: 0,
+      errorMessage: '',
+      responseData: Buffer.from(albumListResponseWithCover()),
+    });
+
+    const result = await new GroupAlbumApi(bridge as never).listQun(12345);
+
+    expect(result.albumList[0]).toMatchObject({
+      album_id: 'album-id',
+      last_upload_time: '1700000123',
+      cover: {
+        type: 1,
+        image: {
+          name: 'cover.jpg',
+          sloc: 'small-location',
+          lloc: 'large-location',
+          photoUrls: [{
+            spec: 3,
+            url: { url: 'https://example.test/cover-320.jpg', width: 320, height: 180 },
+          }],
+          defaultUrl: { url: 'https://example.test/cover.jpg', width: 1280, height: 720 },
+          isGif: false,
+          hasRaw: true,
+        },
+      },
+    });
+  });
+
+  it('returns cover and last-upload metadata from the legacy album list action', async () => {
+    const bridge = mockBridge();
+    bridge.sendRawPacket.mockResolvedValueOnce({
+      success: true,
+      gotResponse: true,
+      errorCode: 0,
+      errorMessage: '',
+      responseData: Buffer.from(albumListResponseWithCover()),
+    });
+
+    const result = await new GroupAlbumApi(bridge as never).list(12345);
+
+    expect(result[0]).toMatchObject({
+      id: 'album-id',
+      last_upload_time: 1700000123,
+      cover: {
+        type: 1,
+        image: {
+          name: 'cover.jpg',
+          defaultUrl: { url: 'https://example.test/cover.jpg', width: 1280, height: 720 },
+        },
+      },
     });
   });
 
