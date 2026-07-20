@@ -7234,6 +7234,7 @@ export const ACTIONS: CatalogAction[] = [
     "name": "send_group_ai_record",
     "aliases": [],
     "summary": "发送 AI 语音到群",
+    "returns": "{ message_id }：已发送 AI 语音的 OneBot 消息 ID。",
     "readOnly": false,
     "params": [
       {
