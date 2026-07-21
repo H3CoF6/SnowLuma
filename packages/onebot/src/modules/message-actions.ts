@@ -11,7 +11,11 @@ import {
   hashMessageIdInt32,
   privateMessageEventName,
 } from '../message-id';
-import { MessageElementValidationError, parseMessage } from '../message-parser';
+import {
+  assertWindowShakeMessageInput,
+  MessageElementValidationError,
+  parseMessage,
+} from '../message-parser';
 import type { MessageStore } from '../message-store';
 import { sameSelfSentMessage } from '../self-sent-event';
 import { hasAuthoritativeSequence, type JsonArray, type JsonObject, type JsonValue, type MessageMeta } from '../types';
@@ -850,6 +854,11 @@ export async function sendPrivateMessage(
   if (tempGroupId !== undefined && !isTempReply) {
     throw new Error(`cannot send to user ${userId} in group ${tempGroupId}: no such temp session`);
   }
+  assertWindowShakeMessageInput(
+    message,
+    autoEscape,
+    tempGroupId === undefined ? 'direct-private' : 'group-temp',
+  );
   const elements = await parseMessage(message, autoEscape, {
     resolveReplySequence: (replyMessageId) => {
       return ref.messageStore.resolveReplySequence(false, userId, replyMessageId);
@@ -1045,6 +1054,7 @@ export async function sendGroupMessage(
   message: JsonValue,
   autoEscape: boolean,
 ): Promise<MessageSendResult> {
+  assertWindowShakeMessageInput(message, autoEscape, 'group');
   const elements = await parseMessage(message, autoEscape, {
     resolveReplySequence: (replyMessageId) => {
       return ref.messageStore.resolveReplySequence(true, groupId, replyMessageId);
@@ -1450,7 +1460,7 @@ function logSentMessage(isGroup: boolean, targetId: number, elements: MessageEle
         parts.push('[转发消息]');
         break;
       case 'poke':
-        parts.push('[戳一戳]');
+        parts.push('[窗口抖动]');
         break;
       case 'file':
         // Avoid the misleading "[空消息]" the user previously saw when
@@ -1516,6 +1526,40 @@ function assertForwardNodeMetadataIsScalar(
       'node',
       field,
     );
+  }
+}
+
+function assertNoWindowShakeInForwardInput(
+  ref: OneBotInstanceContext,
+  messages: JsonValue,
+  depth = 0,
+): void {
+  if (!Array.isArray(messages) || depth >= MAX_FORWARD_DEPTH) return;
+  for (const item of messages) {
+    const segment = asJsonObject(item);
+    if (!segment) continue;
+    const nodeData = segment.type === 'node' ? asJsonObject(segment.data) : segment;
+    if (!nodeData) continue;
+
+    const messageId = parseForwardMessageId(nodeData.id ?? nodeData.message_id);
+    if (messageId !== 0) {
+      const event = ref.messageStore.findEvent(messageId);
+      if (event) {
+        assertWindowShakeMessageInput(
+          (event.message ?? event.raw_message ?? '') as JsonValue,
+          false,
+          'forward',
+        );
+      }
+      continue;
+    }
+
+    const content = (nodeData.content ?? nodeData.message ?? '') as JsonValue;
+    if (isNestedNodeArray(content)) {
+      assertNoWindowShakeInForwardInput(ref, content, depth + 1);
+    } else {
+      assertWindowShakeMessageInput(content, false, 'forward');
+    }
   }
 }
 
@@ -1610,6 +1654,11 @@ async function parseForwardNodes(
     assertForwardNodeMetadataIsScalar(segment, index);
     return { segment, nodeData: segment };
   });
+
+  // Scan the complete raw tree before parsing any earlier node. Some segment
+  // codecs perform identity lookups or HTTP signing, so discovering a later
+  // window-shake segment during the normal loop would already be too late.
+  assertNoWindowShakeInForwardInput(ref, messages, depth);
 
   const nodes: ForwardNodePayload[] = [];
   for (const { nodeData } of prepared) {
@@ -1742,7 +1791,7 @@ function elementPreview(element: MessageElement): string {
     case 'xml': return '[XML消息]';
     case 'markdown': return '[Markdown]';
     case 'forward': return '[聊天记录]';
-    case 'poke': return '[戳一戳]';
+    case 'poke': return '[窗口抖动]';
     default: return '';
   }
 }

@@ -149,7 +149,7 @@ export interface FileElement {
   sha1Hex?: string;
 }
 
-/** Receive-side representation only; sending uses the dedicated poke Action. */
+/** Window-shake element; outbound use is limited to ordinary friend C2C. */
 export interface PokeElement {
   type: 'poke';
   subType: number;

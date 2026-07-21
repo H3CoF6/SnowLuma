@@ -241,6 +241,11 @@ export interface CommonElem {
   businessType?: pb<3, uint_32>;
 }
 
+/** Payload carried by CommonElem serviceType=2 for private window shakes. */
+export interface PokeExtra {
+  type?: pb<1, uint_32>;
+}
+
 export interface GeneralFlags {
   bubbleDiyTextId?: pb<1, int_32>;
   groupFlagNew?:    pb<2, int_32>;

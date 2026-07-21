@@ -12,6 +12,7 @@ import type {
   SsoReadedReportResp,
 } from '@snowluma/proto-defs/oidb-actions/base';
 import { buildSendElems } from '@snowluma/protocol/element-builder';
+import { assertWindowShakeSendPolicy } from '@snowluma/protocol/element-manifest';
 import { FinalizeOfflineFile } from '@snowluma/protocol/oidb-services/group-file/finalize-offline-file';
 import type { MessageElement, QQEventVariant } from '@snowluma/protocol/events';
 import {
@@ -280,7 +281,11 @@ export class MessageApi {
   async sendGroup(groupId: number, elements: MessageElement[]): Promise<SendMessageReceipt> {
     if (elements.length === 0) throw new Error('message is empty');
 
-    const protoElems = await buildSendElems(elements, { bridge: this.ctx as unknown as Bridge, groupId });
+    const protoElems = await buildSendElems(elements, {
+      bridge: this.ctx as unknown as Bridge,
+      groupId,
+      scene: 'group',
+    });
     const random = this.ctx.nextMessageRandom();
 
     const request = protobuf_encode<SendMessageRequest>({
@@ -329,6 +334,11 @@ export class MessageApi {
    */
   async sendPrivate(userUin: number, elements: MessageElement[]): Promise<SendMessageReceipt> {
     if (elements.length === 0) throw new Error('message is empty');
+    assertWindowShakeSendPolicy(
+      elements.filter((element) => element.type === 'poke').length,
+      elements.length,
+      'direct-private',
+    );
 
     let userUid = '';
     const hasMedia = elements.some(e => e.type === 'image' || e.type === 'record' || e.type === 'video');
@@ -336,7 +346,11 @@ export class MessageApi {
       userUid = await this.ctx.resolveUserUid(userUin);
     }
 
-    const protoElems = await buildSendElems(elements, { bridge: this.ctx as unknown as Bridge, userUid });
+    const protoElems = await buildSendElems(elements, {
+      bridge: this.ctx as unknown as Bridge,
+      userUid,
+      scene: 'direct-private',
+    });
     const random = this.ctx.nextMessageRandom();
     const clientSeq = this.ctx.nextClientSequence();
 
@@ -397,9 +411,18 @@ export class MessageApi {
     elements: MessageElement[],
   ): Promise<SendMessageReceipt> {
     if (elements.length === 0) throw new Error('message is empty');
+    assertWindowShakeSendPolicy(
+      elements.filter((element) => element.type === 'poke').length,
+      elements.length,
+      'group-temp',
+    );
 
     const userUid = await this.ctx.resolveUserUid(userUin);
-    const protoElems = await buildSendElems(elements, { bridge: this.ctx as unknown as Bridge, userUid });
+    const protoElems = await buildSendElems(elements, {
+      bridge: this.ctx as unknown as Bridge,
+      userUid,
+      scene: 'group-temp',
+    });
     const random = this.ctx.nextMessageRandom();
     const clientSeq = this.ctx.nextClientSequence();
 
