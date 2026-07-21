@@ -4515,6 +4515,10 @@ export const ACTIONS: CatalogAction[] = [
           "type": "string",
           "description": "群名片"
         },
+        "is_robot": {
+          "type": "boolean",
+          "description": "是否为机器人"
+        },
         "sex": {
           "type": "string",
           "enum": [
@@ -4665,6 +4669,10 @@ export const ACTIONS: CatalogAction[] = [
           "card": {
             "type": "string",
             "description": "群名片"
+          },
+          "is_robot": {
+            "type": "boolean",
+            "description": "是否为机器人"
           },
           "sex": {
             "type": "string",
