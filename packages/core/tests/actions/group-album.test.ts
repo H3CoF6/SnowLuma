@@ -10,6 +10,7 @@ import type {
   GroupAlbumListRequestWireOracle,
   GroupAlbumListResponseWireOracle,
   GroupAlbumMediaListRequestWireOracle,
+  GroupAlbumMediaListResponseWireOracle,
 } from './group-album-wire-fixture';
 
 function albumListResponseWithCover(): Uint8Array {
@@ -256,11 +257,92 @@ describe('apis/group-album', () => {
       mediaList: [{
         type: 1,
         image: null,
+        video: null,
         uploader: '10001',
         batchId: '123',
         uploadTime: '456',
       }],
       nextAttachInfo: 'next-page',
+    });
+  });
+
+  it('returns video metadata from the group album media list', async () => {
+    const bridge = mockBridge();
+    bridge.sendRawPacket.mockResolvedValueOnce({
+      success: true,
+      gotResponse: true,
+      errorCode: 0,
+      errorMessage: '',
+      responseData: Buffer.from(protobuf_encode<GroupAlbumMediaListResponseWireOracle>({
+        data: {
+          mediaList: [{
+            type: 2,
+            video: {
+              id: 'video-id',
+              url: 'https://example.test/video.mp4',
+              cover: {
+                name: 'cover.jpg',
+                sloc: 'cover-small',
+                lloc: 'cover-large',
+                photoUrls: [{
+                  spec: 3,
+                  url: { url: 'https://example.test/cover-320.jpg', width: 320, height: 180 },
+                }],
+                defaultUrl: { url: 'https://example.test/cover.jpg', width: 1920, height: 1080 },
+                isGif: true,
+                hasRaw: true,
+              },
+              width: 1920,
+              height: 1080,
+              videoTime: 15n,
+              videoUrl: [{
+                spec: 1,
+                url: { url: 'https://example.test/video-720p.mp4', width: 1280, height: 720 },
+              }],
+            },
+            uploader: '10001',
+            batchId: 123n,
+            uploadTime: 456n,
+          }],
+          nextAttachInfo: 'next-video-page',
+        },
+      })),
+    });
+
+    const result = await new GroupAlbumApi(bridge as never).getMediaList(12345, 'album-id');
+
+    expect(result).toEqual({
+      mediaList: [{
+        type: 2,
+        image: null,
+        video: {
+          id: 'video-id',
+          url: 'https://example.test/video.mp4',
+          cover: {
+            name: 'cover.jpg',
+            sloc: 'cover-small',
+            lloc: 'cover-large',
+            photoUrls: [{
+              spec: 3,
+              url: { url: 'https://example.test/cover-320.jpg', width: 320, height: 180 },
+            }],
+            defaultUrl: { url: 'https://example.test/cover.jpg', width: 1920, height: 1080 },
+            isGif: true,
+            hasRaw: true,
+          },
+          width: 1920,
+          height: 1080,
+          videoTime: '15',
+          videoUrl: [{
+            spec: 1,
+            url: { url: 'https://example.test/video-720p.mp4', width: 1280, height: 720 },
+          }],
+        },
+        uploader: '10001',
+        batchId: '123',
+        uploadTime: '456',
+      }],
+      nextAttachInfo: 'next-video-page',
     });
   });
 });

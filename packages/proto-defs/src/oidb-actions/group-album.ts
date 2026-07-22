@@ -106,9 +106,19 @@ export interface ImageInfo {
   isGif?:      pb<6, bool>;
   hasRaw?:     pb<7, bool>;
 }
+export interface VideoInfo {
+  id?:        pb<1, string>;
+  url?:       pb<2, string>;
+  cover?:     pb<3, ImageInfo>;
+  width?:     pb<4, uint_32>;
+  height?:    pb<5, uint_32>;
+  videoTime?: pb<6, uint_64>;
+  videoUrl?:  pb_repeated<7, PhotoUrl>;
+}
 export interface MediaInfo {
   type?:       pb<1, uint_32>;
   image?:      pb<2, ImageInfo>;
+  video?:      pb<3, VideoInfo>;
   uploader?:   pb<6, string>;
   batchId?:    pb<7, uint_64>;
   uploadTime?: pb<8, uint_64>;
