@@ -408,6 +408,10 @@ export async function parseMessage(message: JsonValue, autoEscape: boolean, opti
     const elements: MessageElement[] = [];
     for (const seg of message) {
       const data = segmentPayload(seg);
+      // Some OneBot clients insert empty text between media as a separator.
+      // Only the exact empty string is a no-op; malformed and whitespace text
+      // must still pass through strict element validation.
+      if (seg.type.trim().toLowerCase() === 'text' && data.text === '') continue;
       const elem = await segmentToElement(seg.type, data, options);
       if (elem) elements.push(elem);
     }
