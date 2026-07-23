@@ -148,6 +148,19 @@ describe('parseMessage', () => {
       });
     });
 
+    it('does not treat whitespace-padded segment types as empty text placeholders', async () => {
+      await expect(parseMessage(
+        [
+          { type: 'image', data: { file: 'https://example.com/image.png' } },
+          { type: ' text ', data: { text: '' } },
+        ] as any,
+        false,
+      )).rejects.toMatchObject({
+        code: 'UNKNOWN_TYPE',
+        elementType: ' text ',
+      });
+    });
+
     it('preserves whitespace-only text segments', async () => {
       await expect(parseMessage(
         [{ type: 'text', data: { text: ' ' } }] as any,
