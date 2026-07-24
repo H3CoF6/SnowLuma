@@ -2438,6 +2438,22 @@ export const actions = [
       return okResponse({ fileset_id: filesetId });
     },
   }),
+
+  // 好友个性装扮
+  defineAction({
+    name: '_get_friend_dress',
+    summary: '获取指定 QQ 号正在使用的个性装扮（挂件/名片/来电/输入状态等）',
+    returns: '装扮列表；解析不到（未登录态/风控/页面改版）时 items 为空',
+    readOnly: true,
+    params: { user_id: f.userId().describe('目标 QQ 号') },
+    run: async (p, ctx) => {
+      const dress = await ctx.bridge.apis.web.getFriendDress(p.user_id);
+      if (!dress) {
+        return failedResponse(RETCODE.ACTION_FAILED, 'failed to get friend dress: 未能解析装扮页');
+      }
+      return okResponse(dress);
+    },
+  }),
 ];
 
 // 已过滤（机器人/被忽略）的入群请求。

@@ -2,6 +2,7 @@ import { loadBinarySource } from '@snowluma/protocol/highway/utils';
 import { ForceFetchClientKey, type ClientKeyInfo as NamespaceClientKeyInfo } from '@snowluma/protocol/oidb-services/web/force-fetch-client-key';
 import { GetPskey } from '@snowluma/protocol/oidb-services/web/get-pskey';
 import { getGroupEssenceMsg, getGroupEssenceMsgAll, type GroupEssenceMsgRet } from '@snowluma/protocol/web/group-essence';
+import { getFriendDressWebAPI, type WebFriendDress } from '@snowluma/protocol/web/friend-dress';
 import { getHonorListWebAPI, WebHonorType, type WebHonorItem } from '@snowluma/protocol/web/group-honor';
 import { getDaySignedListWebAPI, type SignedListMember } from '@snowluma/protocol/web/group-signin';
 import {
@@ -416,5 +417,15 @@ export class WebApi {
     const groupCode = groupId.toString();
     const cookieObject = await getCookies(bridge, 'qun.qq.com');
     return await deleteGroupNoticeHttp(cookieObject, groupCode, fid);
+  }
+
+  // ─────────────── friend dress (好友装扮) ───────────────
+
+  /** 查某人正在用的好友装扮（挂件/名片/来电/输入状态等）。走 vip.qq.com 域，
+   *  纯 cookie 鉴权、抓 SSR HTML；解析不出（未登录态/风控/页面改版）返回 null。 */
+  async getFriendDress(targetUin: number): Promise<WebFriendDress | null> {
+    const bridge = asBridge(this.ctx);
+    const cookieObject = await getCookies(bridge, 'vip.qq.com');
+    return getFriendDressWebAPI(cookieObject, targetUin.toString());
   }
 }
