@@ -65,7 +65,7 @@ export const ACTIONS: CatalogAction[] = [
     "name": "_get_friend_dress",
     "aliases": [],
     "summary": "获取指定 QQ 号正在使用的个性装扮（挂件/名片/来电/输入状态等）",
-    "returns": "装扮列表；解析不到（未登录态/风控/页面改版）时 items 为空",
+    "returns": "装扮信息；目标未使用任何可查询装扮时 items 为空数组。网络失败、未登录态/风控、页面改版、返回账号与请求不一致时返回失败并附具体原因",
     "readOnly": true,
     "params": [
       {

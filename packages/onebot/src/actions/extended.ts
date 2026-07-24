@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import { FriendDressError } from '@snowluma/protocol/web/friend-dress';
 import type { ApiActionContext } from '../api-handler';
 import { asNumber, asString } from '../api-handler';
 import type { ForwardPreviewMeta } from '../modules/message-actions';
@@ -2443,15 +2444,18 @@ export const actions = [
   defineAction({
     name: '_get_friend_dress',
     summary: '获取指定 QQ 号正在使用的个性装扮（挂件/名片/来电/输入状态等）',
-    returns: '装扮列表；解析不到（未登录态/风控/页面改版）时 items 为空',
+    returns: '装扮信息；目标未使用任何可查询装扮时 items 为空数组。网络失败、未登录态/风控、页面改版、返回账号与请求不一致时返回失败并附具体原因',
     readOnly: true,
     params: { user_id: f.userId().describe('目标 QQ 号') },
     run: async (p, ctx) => {
-      const dress = await ctx.bridge.apis.web.getFriendDress(p.user_id);
-      if (!dress) {
-        return failedResponse(RETCODE.ACTION_FAILED, 'failed to get friend dress: 未能解析装扮页');
+      try {
+        return okResponse(await ctx.bridge.apis.web.getFriendDress(p.user_id));
+      } catch (e) {
+        if (e instanceof FriendDressError) {
+          return failedResponse(RETCODE.ACTION_FAILED, `failed to get friend dress (${e.kind}): ${e.message}`);
+        }
+        return failedResponse(RETCODE.ACTION_FAILED, `failed to get friend dress: ${(e as Error).message}`);
       }
-      return okResponse(dress);
     },
   }),
 ];

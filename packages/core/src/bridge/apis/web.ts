@@ -422,8 +422,9 @@ export class WebApi {
   // ─────────────── friend dress (好友装扮) ───────────────
 
   /** 查某人正在用的好友装扮（挂件/名片/来电/输入状态等）。走 vip.qq.com 域，
-   *  纯 cookie 鉴权、抓 SSR HTML；解析不出（未登录态/风控/页面改版）返回 null。 */
-  async getFriendDress(targetUin: number): Promise<WebFriendDress | null> {
+   *  纯 cookie 鉴权、抓 SSR HTML。「查到但没装扮」返回空 items；网络/未登录态/
+   *  风控/页面改版/串号数据抛 FriendDressError（kind 区分具体环节）。 */
+  async getFriendDress(targetUin: number): Promise<WebFriendDress> {
     const bridge = asBridge(this.ctx);
     const cookieObject = await getCookies(bridge, 'vip.qq.com');
     return getFriendDressWebAPI(cookieObject, targetUin.toString());
